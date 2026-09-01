@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { ScrollReveal } from "@/components/ScrollReveal";
 import type { StepProduct } from "@/types/homepage";
 
@@ -38,14 +39,11 @@ export function StepPhones({
         <p className="mt-4 text-base text-gray-600">{description}</p>
       </div>
 
+      {/* 01.09.2026 kullanıcı geri bildirimi: satırlar artık solda/sağda
+          DÖNMÜYOR — görsel her adımda tutarlı olarak solda, metin sağda. */}
       <div className="mt-12 flex flex-col gap-y-16">
-        {steps.map((step, i) => (
-          <ScrollReveal
-            key={step.title}
-            className={`flex flex-col items-center gap-8 lg:flex-row lg:gap-16 ${
-              i % 2 === 1 ? "lg:flex-row-reverse" : ""
-            }`}
-          >
+        {steps.map((step) => (
+          <ScrollReveal key={step.title} className="flex flex-col items-center gap-8 lg:flex-row lg:gap-16">
             <div className="w-full max-w-[280px] shrink-0">
               <Image
                 src={step.image}
@@ -55,9 +53,30 @@ export function StepPhones({
                 className="h-auto w-full"
               />
             </div>
-            <div className="max-w-md text-center lg:text-left">
+            {/* `relative` + arkaplan görseli `absolute inset-0 -z-10`: metin
+                bloğu kendi normal akışında (z-index 0'ın üstünde, DOM sırasına
+                göre) kalıyor, arkaplan görseli onun ARKASINA/ALTINA düşüyor,
+                asla metnin üzerine binmiyor. */}
+            <div className="relative max-w-md text-center lg:text-left">
+              {step.backgroundImage && (
+                <Image
+                  src={step.backgroundImage.url}
+                  alt={step.backgroundImage.alt}
+                  fill
+                  className="-z-10 object-contain object-center opacity-90"
+                  aria-hidden="true"
+                />
+              )}
               <h3 className="text-2xl font-bold text-black">{step.title}</h3>
               <p className="mt-3 text-base text-gray-600">{step.description}</p>
+              {step.ctaHref && step.ctaLabel && (
+                <Link
+                  href={step.ctaHref}
+                  className="mt-4 inline-block text-sm font-bold text-vf-red hover:underline"
+                >
+                  {step.ctaLabel} &gt;
+                </Link>
+              )}
             </div>
           </ScrollReveal>
         ))}

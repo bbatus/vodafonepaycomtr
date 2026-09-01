@@ -10,6 +10,12 @@ export interface StepProduct {
   description: string;
   image: string;
   imageAlt: string;
+  /** CMS-editable CTA label under the step (e.g. "Keşfet"). Only shown when ctaHref is also set. */
+  ctaLabel?: string;
+  /** Resolved from the CMS's `ctaPage` relationship (an active/published Page only) — never a free-text URL. */
+  ctaHref?: string;
+  /** Optional decorative image behind the text — must render BEHIND the copy (lower z-index), never over it. */
+  backgroundImage?: { url: string; alt: string };
 }
 
 export interface CampaignCard {

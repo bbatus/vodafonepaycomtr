@@ -810,7 +810,21 @@ const stepPhonesBlockSchema = z.object({
   id: z.string().optional(),
   heading: nullableString(),
   description: nullableString(),
-  steps: z.array(z.object({ image: mediaSchema, title: z.string(), description: z.string() })),
+  steps: z.array(
+    z.object({
+      image: mediaSchema,
+      title: z.string(),
+      description: z.string(),
+      ctaLabel: nullableString(),
+      // depth>=1 populates this as the full Page doc (or null if unset/unpublished
+      // by the time this renders) — only `slug` is needed to build the href.
+      ctaPage: z
+        .union([z.object({ slug: z.string().nullable().optional() }), z.number(), z.string()])
+        .nullable()
+        .optional(),
+      backgroundImage: mediaSchema.nullable().optional().transform((v) => v ?? undefined),
+    })
+  ),
 });
 const imageTextSlidesBlockSchema = z.object({
   blockType: z.literal("imageTextSlides"),

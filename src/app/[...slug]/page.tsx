@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { resolveInternalDocHref } from "@/lib/internalLink";
 import { AppDownloadBanner } from "@/components/AppDownloadBanner";
 import { Header } from "@/components/Header";
 import { Breadcrumb } from "@/components/Breadcrumb";
@@ -290,7 +291,19 @@ export async function BlockRenderer({ block }: { block: CmsPageBlock }) {
         <StepPhones
           heading={block.heading}
           description={block.description}
-          steps={block.steps.map((s) => ({ title: s.title, description: s.description, image: s.image.url, imageAlt: s.image.alt || s.title }))}
+          steps={block.steps.map((s) => {
+            const ctaPage = typeof s.ctaPage === "object" ? s.ctaPage : null;
+            const ctaHref = resolveInternalDocHref("pages", ctaPage) ?? undefined;
+            return {
+              title: s.title,
+              description: s.description,
+              image: s.image.url,
+              imageAlt: s.image.alt || s.title,
+              ctaLabel: s.ctaLabel ?? undefined,
+              ctaHref,
+              backgroundImage: s.backgroundImage ? { url: s.backgroundImage.url, alt: s.backgroundImage.alt || "" } : undefined,
+            };
+          })}
         />
       );
 
