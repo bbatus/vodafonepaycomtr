@@ -189,13 +189,14 @@ describe("BlockRenderer", () => {
     expect(screen.queryByText("Yazı B")).not.toBeInTheDocument();
   });
 
-  it("featureHighlights: renders each feature and prefers an uploaded image over the built-in video", async () => {
+  it("featureHighlights: renders each feature and prefers an uploaded image over an uploaded video", async () => {
     const { container } = render(
       await BlockRenderer({
         block: {
           blockType: "featureHighlights",
           heading: "Ayrıcalıklı Dünya",
           media: image,
+          video: { url: "/media/promo.mp4", alt: "" },
           features: [{ icon: image, title: "Nakit İade", description: "Harcadıkça kazan" }],
         },
       })
@@ -204,18 +205,38 @@ describe("BlockRenderer", () => {
     expect(container.querySelector("video")).toBeNull();
   });
 
-  it("featureHighlights: falls back to the site's own video when no media is uploaded", async () => {
+  it("featureHighlights: uses the CMS-uploaded video when no image is set", async () => {
     const { container } = render(
       await BlockRenderer({
         block: {
           blockType: "featureHighlights",
           heading: undefined,
           media: undefined,
+          video: { url: "/media/promo.mp4", alt: "" },
           features: [{ icon: image, title: "Nakit İade", description: "Harcadıkça kazan" }],
         },
       })
     );
-    expect(container.querySelector("video")).not.toBeNull();
+    const video = container.querySelector("video");
+    expect(video).not.toBeNull();
+    expect(video).toHaveAttribute("src", "/media/promo.mp4");
+  });
+
+  it("featureHighlights: renders no image/video at all when neither is set — no hardcoded fallback file", async () => {
+    const { container } = render(
+      await BlockRenderer({
+        block: {
+          blockType: "featureHighlights",
+          heading: undefined,
+          media: undefined,
+          video: undefined,
+          features: [{ icon: image, title: "Nakit İade", description: "Harcadıkça kazan" }],
+        },
+      })
+    );
+    expect(container.querySelector("video")).toBeNull();
+    // Only the feature icon <img> should exist, no big right-column media img either.
+    expect(container.querySelectorAll("img")).toHaveLength(1);
   });
 
   it("profileGrid: renders every person with their name and role", async () => {

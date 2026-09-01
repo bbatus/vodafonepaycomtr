@@ -18,18 +18,24 @@ export function FeatureHighlights({
   features,
   heading,
   media,
+  video,
 }: {
   features: Highlight[];
   heading?: string;
-  /**
-   * The homepage passes nothing and keeps the built-in looping video, which is
-   * what the live `widget_Homepage_VpayAyricaliklarDunyasi` shows. The CMS
-   * block passes an uploaded image instead, so an editor can build this
-   * section without a developer adding a video file to /public first.
-   */
+  /** CMS `media` field (image) — takes priority over `video` when both are set. */
   media?: { url: string; alt: string };
+  /**
+   * 01.09.2026 kullanıcı geri bildirimi: bu bileşen daha önce `media` boşsa
+   * sessizce hardcoded bir dosyaya (`/videos/feature-loop.mp4`) düşüyordu —
+   * editör hiç video eklemediği halde anasayfada bir video oynuyordu. Artık
+   * CMS'ten gelen gerçek bir alan (Pages.ts'in `video` field'ı, sadece
+   * `media` boşken kullanılabiliyor) — ikisi de boşsa bu blok hiçbir
+   * görsel/video render etmez.
+   */
+  video?: { url: string; alt: string };
 }) {
   if (features.length === 0) return null;
+  const rightColumnMedia = media ?? video;
 
   return (
     <section className="mx-auto w-full max-w-[1030px] px-4 py-10">
@@ -46,13 +52,15 @@ export function FeatureHighlights({
             </div>
           ))}
         </div>
-        <div className="hidden w-2/3 overflow-hidden rounded-xl lg:block">
-          {media ? (
-            <Image src={media.url} alt={media.alt} width={660} height={340} className="h-[340px] w-full object-cover" />
-          ) : (
-            <video className="h-[340px] w-full object-cover" src="/videos/feature-loop.mp4" autoPlay muted loop playsInline />
-          )}
-        </div>
+        {rightColumnMedia && (
+          <div className="hidden w-2/3 overflow-hidden rounded-xl lg:block">
+            {media ? (
+              <Image src={media.url} alt={media.alt} width={660} height={340} className="h-[340px] w-full object-cover" />
+            ) : (
+              <video className="h-[340px] w-full object-cover" src={video!.url} autoPlay muted loop playsInline />
+            )}
+          </div>
+        )}
       </div>
     </section>
   );

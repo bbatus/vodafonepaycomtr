@@ -281,6 +281,7 @@ export async function BlockRenderer({ block }: { block: CmsPageBlock }) {
         <FeatureHighlights
           heading={block.heading}
           media={block.media}
+          video={block.video}
           features={block.features.map((f) => ({ icon: f.icon.url, title: f.title, description: f.description }))}
         />
       );

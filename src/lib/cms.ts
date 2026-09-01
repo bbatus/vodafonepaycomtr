@@ -773,6 +773,9 @@ const featureHighlightsBlockSchema = z.object({
   id: z.string().optional(),
   heading: nullableString(),
   media: mediaSchema.nullable().optional().transform((v) => v ?? undefined),
+  // 01.09.2026: CMS-yönetimli video — hardcoded /videos/feature-loop.mp4
+  // fallback'inin yerini alıyor (bkz. FeatureHighlights.tsx).
+  video: mediaSchema.nullable().optional().transform((v) => v ?? undefined),
   features: z.array(z.object({ icon: mediaSchema, title: z.string(), description: z.string() })),
 });
 /** Live parity: `widget_BoardOfDirectors`. */
