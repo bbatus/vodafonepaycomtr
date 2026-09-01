@@ -20,11 +20,13 @@ oc login https://api.tst-vcloud.vpara.local:6443 -u <user>
 oc project vepas-ai-am
 ```
 
-**1) Image pull secret**
+**1) Image pull secret — namespace'te ZATEN VAR, yeni bir şey oluşturma**
+`vodafone-githubtest` (`containers.github.vpara.local` için) namespace'te
+hazır — genaiops-event-processor'ın ServiceAccount'u da aynısını kullanıyor
+(01.09.2026 Clover'da sahada doğrulandı). `k8s/serviceaccount.yaml` bunu
+zaten referans veriyor, sadece var olduğunu doğrula:
 ```bash
-oc create secret docker-registry vodafonepaycomtr-pull-secret \
-  --docker-server=containers.github.vpara.local \
-  --docker-username=<kullanici> --docker-password=<token> -n vepas-ai-am
+oc get secret vodafone-githubtest
 ```
 
 **2) Uygulama Secret'ı** (Clover'daki AYNI REVALIDATE_SECRET/PREVIEW_SECRET)
