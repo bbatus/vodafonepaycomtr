@@ -73,7 +73,7 @@ describe("BlockRenderer", () => {
       { id: "1", title: "Kart Kampanyası", description: "D", image, category: { label: "Kart", slug: "kart" }, featured: false, slug: "kart-k", ctaLabel: undefined, ctaUrl: undefined, startDate: undefined, endDate: undefined },
       { id: "2", title: "Ödeme Kampanyası", description: "D", image, category: { label: "Ödeme", slug: "odeme" }, featured: false, slug: "odeme-k", ctaLabel: undefined, ctaUrl: undefined, startDate: undefined, endDate: undefined },
     ] as never);
-    render(await BlockRenderer({ block: { blockType: "campaignGrid", heading: "Kampanyalar", category: "kart" } }));
+    render(await BlockRenderer({ block: { blockType: "campaignGrid", heading: "Kampanyalar", category: "kart", campaigns: [] } }));
     expect(screen.getByText("Kart Kampanyası")).toBeInTheDocument();
     expect(screen.queryByText("Ödeme Kampanyası")).not.toBeInTheDocument();
   });
@@ -82,8 +82,28 @@ describe("BlockRenderer", () => {
     vi.mocked(getCampaigns).mockResolvedValue([
       { id: "1", title: "Kart Kampanyası", description: "D", image, category: { label: "Kart", slug: "kart" }, featured: false, slug: "kart-k", ctaLabel: undefined, ctaUrl: undefined, startDate: undefined, endDate: undefined },
     ] as never);
-    render(await BlockRenderer({ block: { blockType: "campaignGrid", heading: "Kampanyalar", category: undefined } }));
+    render(await BlockRenderer({ block: { blockType: "campaignGrid", heading: "Kampanyalar", category: undefined, campaigns: [] } }));
     expect(screen.getByText("Kart Kampanyası")).toBeInTheDocument();
+  });
+
+  it("campaignGrid: shows ONLY the editor-picked campaigns when set, ignoring the rest of the category", async () => {
+    // Note: doesn't assert getCampaigns() was skipped — this file's shared
+    // vi.mock has no per-test reset, so the mock's call history carries over
+    // from earlier tests in the same describe block regardless. The real
+    // behavior under test is which campaign(s) actually render.
+    render(
+      await BlockRenderer({
+        block: {
+          blockType: "campaignGrid",
+          heading: "Kampanyalar",
+          category: "kart",
+          campaigns: [
+            { id: "2", title: "Ödeme Kampanyası", description: "D", image, category: { label: "Ödeme", slug: "odeme" }, featured: false, slug: "odeme-k", ctaLabel: undefined, ctaUrl: undefined, startDate: undefined, endDate: undefined },
+          ],
+        },
+      })
+    );
+    expect(screen.getByText("Ödeme Kampanyası")).toBeInTheDocument();
   });
 
   it("video: embeds the given YouTube id", async () => {

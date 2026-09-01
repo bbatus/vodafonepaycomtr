@@ -711,6 +711,14 @@ const campaignGridBlockSchema = z.object({
   id: z.string().optional(),
   heading: z.string(),
   category: nullableString(),
+  // 01.09.2026: editörün kategori içinden özellikle seçtiği kampanyalar —
+  // boşsa (geriye dönük uyumluluk) kategorinin TÜMÜ gösterilir (bkz.
+  // [...slug]/page.tsx'in case "campaignGrid"'i).
+  campaigns: z
+    .array(campaignSchema)
+    .nullable()
+    .optional()
+    .transform((v) => v ?? []),
 });
 const videoBlockSchema = z.object({
   blockType: z.literal("video"),

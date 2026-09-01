@@ -124,8 +124,17 @@ export async function BlockRenderer({ block }: { block: CmsPageBlock }) {
     }
 
     case "campaignGrid": {
-      const campaigns = await getCampaigns();
-      const filtered = block.category ? campaigns?.filter((c) => c.category?.slug === block.category) : campaigns;
+      // 01.09.2026 kullanıcı geri bildirimi: editör kategoriden özel olarak
+      // kampanya seçtiyse (block.campaigns), SADECE onlar gösterilir — hiç
+      // seçim yapılmadıysa (boş dizi) eski davranış korunur: kategorinin
+      // tamamı.
+      let filtered: typeof block.campaigns | undefined;
+      if (block.campaigns.length > 0) {
+        filtered = block.campaigns;
+      } else {
+        const campaigns = await getCampaigns();
+        filtered = block.category ? campaigns?.filter((c) => c.category?.slug === block.category) : (campaigns ?? undefined);
+      }
       const items: CardListItem[] = (filtered ?? []).map((c) => {
         const card = campaignToCard(c);
         return { id: card.id, image: card.image, title: card.title, description: card.description, href: card.href };
