@@ -36,6 +36,12 @@ RUN --mount=type=cache,target=/root/.npm \
   echo "No lockfile found." && exit 1; \
   fi
 
+# Never ship proxy credentials in a layer — on the CI runner .npmrc is
+# generated from the org's NPM_PROXY_SETTING variable right before `docker
+# build` (see pipeline-test.yml), and only needs to exist for the install
+# above.
+RUN rm -f .npmrc
+
 # ============================================
 # Stage 2: Build Next.js application in standalone mode
 # ============================================

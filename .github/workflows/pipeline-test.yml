@@ -67,8 +67,47 @@ jobs:
       - name: Test
         run: npm run test
 
+      # 31.08.2026 Clover'da sahada bulundu, KÖK SEBEP node_modules/next/dist/build/
+      # swc/index.js + .../lib/download-swc.js OKUNARAK doğrulandı (aynı runner, aynı
+      # sorun burada da beklenir):
+      #
+      #   1) Runner'ın glibc'i (RHEL) native SWC binary'sinin (@next/swc-linux-x64-gnu)
+      #      istediği GLIBC_2.29'dan eski; musl alternatifi de host'a uymuyor.
+      #   2) Native başarısız olunca Next, wasm fallback'ı ÖNCE "yerelde var mı" diye
+      #      dener — ama bu kontrol `pathToFileURL('@next/swc-wasm-nodejs')` kullanıyor,
+      #      node_modules bare-specifier çözümü DEĞİL, cwd'ye göre düz bir dosya yolu
+      #      (doğrulandı) — yani paketi `npm install` ile node_modules'a koymak
+      #      (Clover'da ilk denenen, İŞE YARAMAYAN çözüm) bu kontrol tarafından HİÇ
+      #      görülmüyor.
+      #   3) Next doğrudan `downloadWasmSwc()`'e düşüyor — o da npm'in registry/proxy
+      #      ayarlarını KULLANMAYAN çıplak bir `fetch()` ile tarball indirmeye
+      #      çalışıyor; kapalı ağda bu timeout'la patlıyor.
+      #
+      # Çözüm: `downloadWasmSwc()`'in indirmeden önce `fs.existsSync()` ile kontrol
+      # ettiği tam hedef klasörü (`node_modules/next/wasm/@next/swc-wasm-nodejs/`)
+      # BİZ, npm'in zaten çalışan `npm pack` komutuyla önceden dolduruyoruz.
+      - name: Pre-populate SWC wasm fallback (offline-safe, avoids next build's own fetch())
+        shell: bash
+        run: |
+          set -e
+          NEXT_VERSION="$(node -p "require('./node_modules/next/package.json').version")"
+          echo "[INFO] Next.js resolved version: ${NEXT_VERSION}"
+          PKG_NAME="@next/swc-wasm-nodejs"
+          TARBALL_PATH="$(npm pack "${PKG_NAME}@${NEXT_VERSION}" --json | node -p 'JSON.parse(require("fs").readFileSync(0,"utf8"))[0].filename')"
+          WASM_DIR="node_modules/next/wasm/${PKG_NAME}"
+          mkdir -p "${WASM_DIR}"
+          tar -xzf "${TARBALL_PATH}" -C "${WASM_DIR}" --strip-components=1
+          rm -f "${TARBALL_PATH}"
+          echo "[INFO] ${WASM_DIR} dolduruldu — next build artık ağa çıkmadan bunu kullanacak."
+
+      # --webpack ZORUNLU burada: Clover'da sahada bulundu (aynı runner, aynı sorun
+      # beklenir) — SWC wasm fallback next.config.ts'i transpile etmeyi başarıyor,
+      # ama Turbopack (varsayılan builder) SADECE native binding'lerle çalışıyor,
+      # WASM binding yüklendiğinde Next'in kendi hatası `--webpack` kullanmayı
+      # öneriyor. `npm run build` yerel geliştirmede Turbopack kullanmaya devam
+      # etsin diye package.json'a dokunmadık — sadece bu CI adımı Webpack'e düşüyor.
       - name: Build
-        run: npm run build
+        run: npx next build --webpack
 
   # ---------------------------------------------------------------------------
   # 2) GÜVENLİK TARAMALARI — build-test ile PARALEL
@@ -134,8 +173,34 @@ jobs:
           echo "${{ secrets.REGISTRY_LOGIN_TOKEN }}" | ${{ steps.engine.outputs.bin }} login "${{ env.REGISTRY_URL }}" \
             -u "${{ vars.REGISTRY_LOGIN_USERNAME }}" --password-stdin
 
+      # 01.09.2026 Clover'da sahada bulundu (aynı runner, aynı sorun burada da
+      # beklenir): `docker build`'in içindeki `npm ci` runner'ın kendi
+      # adımının aksine host'un proxy config'ini miras almıyor — izole build
+      # container'ının bu kapalı ağda registry.npmjs.org'a doğrudan çıkışı yok,
+      # ağa çıkmaya çalışıp süresiz asılı kalıyordu. Çözüm: org'un zaten
+      # tanımlı `NPM_PROXY_SETTING` değişkenini gerçek değerlerle doldurup
+      # `.npmrc` olarak build context'e yaz — Containerfile bunu `npm ci`
+      # öncesi zaten COPY'liyordu (`.npmrc*`, Vercel'in kendi şablonundan),
+      # şimdi install sonrası SİLİYOR da (image'a parola gömülmesin).
+      - name: Create .npmrc from NPM_PROXY_SETTING (npm ci'nin Docker build içindeki proxy erişimi için)
+        shell: bash
+        run: |
+          set -e
+          RAW_SETTING='${{ vars.NPM_PROXY_SETTING }}'
+          if [[ -z "$RAW_SETTING" ]]; then
+            echo "::error::vars.NPM_PROXY_SETTING tanımlı değil — npm ci Docker build içinde ağa çıkamayacak."
+            exit 1
+          fi
+          echo "$RAW_SETTING" > .npmrc
+          sed -i "s/{{MEND_PROXY_USER}}/${{ vars.MEND_PROXY_USER }}/g" .npmrc
+          sed -i "s|{{MEND_PROXY_PASSWORD}}|${{ secrets.MEND_PROXY_PASSWORD }}|g" .npmrc
+
       - name: Build image
         run: ${{ steps.engine.outputs.bin }} build -t "${{ steps.img.outputs.image }}" -f Containerfile .
+
+      - name: Remove .npmrc from runner workspace
+        if: always()
+        run: rm -f .npmrc
 
       - name: Push image
         run: ${{ steps.engine.outputs.bin }} push "${{ steps.img.outputs.image }}"
