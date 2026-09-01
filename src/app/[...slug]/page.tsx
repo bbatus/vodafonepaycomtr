@@ -91,7 +91,7 @@ export async function BlockRenderer({ block }: { block: CmsPageBlock }) {
       return (
         <ProductHero
           image={block.image.url}
-          imageAlt={block.image.alt || block.heading}
+          imageAlt={block.image.alt || block.heading || "Vodafone Pay"}
           heading={block.heading}
           subheading={block.subheading}
           ctaLabel={block.ctaLabel}

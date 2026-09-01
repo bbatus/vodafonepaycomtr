@@ -686,7 +686,9 @@ export async function getPageMeta(pageKey: string): Promise<CmsPageMeta | null> 
 const heroBlockSchema = z.object({
   blockType: z.literal("hero"),
   id: z.string().optional(),
-  heading: z.string(),
+  // 01.09.2026: artık Pages.ts'te required değil (ProductHero.tsx'in
+  // güncellenmiş yorumuna bkz.) — boş gelebilir.
+  heading: nullableString(),
   subheading: nullableString(),
   image: mediaSchema,
   ctaLabel: nullableString(),

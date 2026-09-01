@@ -3,47 +3,41 @@ import { render, screen } from "@testing-library/react";
 import { ProductHero } from "@/components/ProductHero";
 
 /**
- * These pin the shape measured on vodafonepay.com.tr's own product hero
- * (/aninda-bakiye, /qr-ile-faturana-yansit — both identical): the copy is a
- * white overlay ON the image from lg up, and a `#f3f4f6` strip UNDER the image
- * below lg. The component previously drew that grey strip at every breakpoint
- * with `py-8`, so desktop showed a 96px grey slab the real site never renders.
+ * 01.09.2026 kullanıcı geri bildirimiyle güncellendi: eski overlay-on-image
+ * deseni (bkz. ProductHero.tsx'in yorumu) kaldırıldı — artık tek düzen, her
+ * breakpoint'te aynı: görsel üstte, başlık/alt başlık/buton altında, kendi
+ * padding'li bloğunda.
  */
 describe("ProductHero", () => {
   const base = { image: "/hero.jpg", imageAlt: "Hero", heading: "Başlık" };
 
-  it("keeps exactly one h1 even though the copy is rendered for both breakpoints", () => {
+  it("renders exactly one h1", () => {
     render(<ProductHero {...base} subheading="Alt başlık" />);
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
-    expect(screen.getAllByText("Başlık")).toHaveLength(2);
   });
 
-  it("shows the heading overlay only from lg up, and the grey strip only below lg", () => {
+  it("renders the heading block BELOW the image, not overlaid on it", () => {
     const { container } = render(<ProductHero {...base} />);
 
-    const overlay = container.querySelector("h1")?.parentElement;
-    expect(overlay?.className).toContain("hidden");
-    expect(overlay?.className).toContain("lg:flex");
-    // Positioned over the image, which is what makes it an overlay at all.
-    expect(overlay?.className).toContain("absolute");
+    const imageWrapper = container.querySelector("section > div:first-child");
+    expect(imageWrapper?.className).not.toContain("absolute");
 
-    const strip = [...container.querySelectorAll("div")].find((d) => d.className.includes("bg-[#f3f4f6]"));
-    expect(strip).toBeDefined();
-    expect(strip?.className).toContain("lg:hidden");
+    const headingBlock = container.querySelector("h1")?.parentElement;
+    expect(headingBlock?.className).not.toContain("absolute");
+    // Comes after the image wrapper in the DOM, i.e. genuinely below it.
+    expect(imageWrapper?.nextElementSibling).toBe(headingBlock);
   });
 
-  it("never pads the mobile strip out into a tall slab (live hugs the text with my-[10px])", () => {
-    const { container } = render(<ProductHero {...base} />);
-    const strip = [...container.querySelectorAll("div")].find((d) => d.className.includes("bg-[#f3f4f6]"));
-    expect(strip?.className).not.toContain("py-8");
-    expect(strip?.querySelector("div")?.className).toContain("my-[10px]");
+  it("omits the heading block entirely when heading is empty (title is now optional)", () => {
+    const { container } = render(<ProductHero {...base} heading={undefined} />);
+    expect(container.querySelector("h1")).not.toBeInTheDocument();
+    expect(container.querySelector("img")).toBeInTheDocument();
   });
 
-  it("renders the CTA in both branches when a label and url are given, and omits it otherwise", () => {
+  it("renders the CTA when a label and url are given, and omits it otherwise", () => {
     const { rerender } = render(<ProductHero {...base} ctaLabel="Hemen Başla" ctaUrl="/kampanyalar" />);
-    const links = screen.getAllByRole("link", { name: "Hemen Başla" });
-    expect(links.length).toBeGreaterThan(0);
-    expect(links[0]).toHaveAttribute("href", "/kampanyalar");
+    const link = screen.getByRole("link", { name: "Hemen Başla" });
+    expect(link).toHaveAttribute("href", "/kampanyalar");
 
     rerender(<ProductHero {...base} ctaLabel="Hemen Başla" />);
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
