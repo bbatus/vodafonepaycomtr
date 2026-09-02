@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { getBlogPosts, getCampaigns, getPages, getRepresentatives } from "@/lib/cms";
+import { HOMEPAGE_SLUG } from "@/lib/homepage";
 
 const SITE_URL = process.env.SITE_URL || "http://localhost:3000";
 
@@ -12,6 +13,12 @@ const SITE_URL = process.env.SITE_URL || "http://localhost:3000";
  * used to be here and were removed when they were migrated onto Pages: the
  * duplicate was invisible until `getPages()` was fixed, because that getter
  * had been returning null and contributing nothing at all.
+ *
+ * 02.09.2026: `/faturana-yansit` and `/vodafone-pay-kart` went the same way and
+ * were left behind here — there is no `src/app/faturana-yansit` or
+ * `src/app/vodafone-pay-kart` any more, both are Pages documents. The dedupe at
+ * the bottom hid it, but the list still claimed two routes this app does not
+ * have.
  */
 const STATIC_ROUTES = [
   "",
@@ -19,7 +26,6 @@ const STATIC_ROUTES = [
   "/blog",
   "/cerez-politikasi",
   "/duyurular",
-  "/faturana-yansit",
   "/faydali-bilgiler",
   "/gizlilik-ve-guvenlik-politikasi",
   "/iletisim",
@@ -30,7 +36,6 @@ const STATIC_ROUTES = [
   "/sozlesmeler-ve-formlar",
   "/temsilciliklerimiz",
   "/ucretler-ve-limitler",
-  "/vodafone-pay-kart",
   "/web-sitesi-hukum-ve-sartlari",
 ];
 
@@ -59,9 +64,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     url: `${SITE_URL}/temsilci/${r.id}`,
   }));
 
-  const editorPageEntries: MetadataRoute.Sitemap = (pages ?? []).map((p) => ({
-    url: `${SITE_URL}/${p.slug}`,
-  }));
+  // The homepage document is served at `/` (already in STATIC_ROUTES as ""),
+  // and `/anasayfa` 308-redirects there — listing it would advertise a URL
+  // that only bounces.
+  const editorPageEntries: MetadataRoute.Sitemap = (pages ?? [])
+    .filter((p) => p.slug !== HOMEPAGE_SLUG)
+    .map((p) => ({ url: `${SITE_URL}/${p.slug}` }));
 
   const all = [...staticEntries, ...campaignEntries, ...blogEntries, ...representativeEntries, ...editorPageEntries];
 

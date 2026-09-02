@@ -3,12 +3,15 @@ import { render, screen } from "@testing-library/react";
 import EditorPage, { generateMetadata, generateStaticParams } from "@/app/[...slug]/page";
 import { getPageBySlug, getPageMeta, getPages } from "@/lib/cms";
 
-const { notFoundMock } = vi.hoisted(() => ({
+const { notFoundMock, permanentRedirectMock } = vi.hoisted(() => ({
   notFoundMock: vi.fn(() => {
     throw new Error("NEXT_NOT_FOUND");
   }),
+  permanentRedirectMock: vi.fn((url: string) => {
+    throw new Error(`NEXT_REDIRECT:${url}`);
+  }),
 }));
-vi.mock("next/navigation", () => ({ notFound: notFoundMock }));
+vi.mock("next/navigation", () => ({ notFound: notFoundMock, permanentRedirect: permanentRedirectMock }));
 
 vi.mock("@/lib/cms", async () => {
   const actual = await vi.importActual<typeof import("@/lib/cms")>("@/lib/cms");
@@ -31,6 +34,29 @@ describe("generateStaticParams", () => {
   it("returns an empty array when the CMS has no pages", async () => {
     vi.mocked(getPages).mockResolvedValue(null);
     expect(await generateStaticParams()).toEqual([]);
+  });
+
+  /**
+   * The homepage document is served at `/`. Prerendering it here too would
+   * build `/anasayfa` as a second address for the same content — the duplicate
+   * this route now redirects away.
+   */
+  it("skips the homepage document", async () => {
+    vi.mocked(getPages).mockResolvedValue([
+      { id: "1", title: "Anasayfa", slug: "anasayfa", layout: [], seoTitle: undefined, seoDescription: undefined, seoKeywords: undefined, ogImage: undefined, parent: undefined },
+      { id: "2", title: "T", slug: "aninda-bakiye", layout: [], seoTitle: undefined, seoDescription: undefined, seoKeywords: undefined, ogImage: undefined, parent: undefined },
+    ] as never);
+
+    expect(await generateStaticParams()).toEqual([{ slug: ["aninda-bakiye"] }]);
+  });
+});
+
+describe("homepage slug", () => {
+  it("308-redirects /anasayfa to / instead of serving the same page twice", async () => {
+    await expect(EditorPage({ params: Promise.resolve({ slug: ["anasayfa"] }) })).rejects.toThrow("NEXT_REDIRECT:/");
+    expect(permanentRedirectMock).toHaveBeenCalledWith("/");
+    // It must not even reach the CMS for a page it is never going to render.
+    expect(getPageBySlug).not.toHaveBeenCalledWith("anasayfa");
   });
 });
 

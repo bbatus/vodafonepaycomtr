@@ -69,6 +69,19 @@ describe("sitemap", () => {
     expect(urls.filter((u) => u === "http://localhost:3000/qr-ile-faturana-yansit")).toHaveLength(1);
   });
 
+  /**
+   * The homepage document lives at `/`; `/anasayfa` only 308-redirects there.
+   * A sitemap that lists it is advertising a URL that bounces.
+   */
+  it("lists the homepage once, as /, and never as /anasayfa", async () => {
+    mockAll({ pages: [{ id: "1", slug: "anasayfa" }, { id: "2", slug: "aninda-bakiye" }] });
+    const entries = await sitemap();
+    const urls = entries.map((e) => e.url);
+    expect(urls).not.toContain("http://localhost:3000/anasayfa");
+    // STATIC_ROUTES' "" entry — the homepage is listed as the bare origin.
+    expect(urls.filter((u) => u === "http://localhost:3000")).toHaveLength(1);
+  });
+
   it("never emits the same URL twice, even if a Page's slug collides with a hand-built route", async () => {
     mockAll({ pages: [{ id: "1", slug: "iletisim" }] });
     const entries = await sitemap();

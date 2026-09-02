@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { resolveInternalDocHref } from "@/lib/internalLink";
@@ -42,6 +42,7 @@ import {
   type CmsPageBlock,
 } from "@/lib/cms";
 import { buildMetadata } from "@/lib/metadata";
+import { HOMEPAGE_SLUG } from "@/lib/homepage";
 import { RichText } from "@/components/RichText";
 
 /**
@@ -51,7 +52,11 @@ import { RichText } from "@/components/RichText";
  */
 export async function generateStaticParams() {
   const pages = await getPages();
-  return (pages ?? []).map((p) => ({ slug: p.slug.split("/").filter(Boolean) }));
+  // The homepage document is served at `/` by src/app/page.tsx — prerendering
+  // it here as well would build the very duplicate URL this route redirects.
+  return (pages ?? [])
+    .filter((p) => p.slug !== HOMEPAGE_SLUG)
+    .map((p) => ({ slug: p.slug.split("/").filter(Boolean) }));
 }
 
 /**
@@ -469,6 +474,13 @@ export async function BlockRenderer({ block }: { block: CmsPageBlock }) {
 
 export default async function EditorPage({ params }: { params: Promise<{ slug: string[] }> }) {
   const { slug } = await params;
+  // 02.09.2026: the homepage document has to carry a slug like any other Page,
+  // but its address is `/`. Without this, the exact same content answered at
+  // BOTH `/` and `/anasayfa` — two URLs, one page, which is a duplicate for
+  // search engines and a puzzle for the editor who only ever created one page.
+  // 308 rather than 404 so anything already linking to /anasayfa still lands.
+  if (slug.join("/") === HOMEPAGE_SLUG) permanentRedirect("/");
+
   const page = await getPageBySlug(slug.join("/"));
   if (!page) notFound();
 

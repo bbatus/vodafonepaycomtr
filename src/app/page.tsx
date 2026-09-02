@@ -1,13 +1,34 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { AppDownloadBanner } from "@/components/AppDownloadBanner";
 import { Header } from "@/components/Header";
-import { Hero } from "@/components/Hero";
-import { Campaigns } from "@/components/Campaigns";
-import { Faq } from "@/components/Faq";
 import { Footer } from "@/components/Footer";
-import { campaignToCard, getCampaigns, getFaqItems, getPageBySlug, getPageMeta } from "@/lib/cms";
+import { getPageBySlug, getPageMeta } from "@/lib/cms";
+import { HOMEPAGE_SLUG } from "@/lib/homepage";
 import { BlockRenderer } from "@/app/[...slug]/page";
 import { buildMetadata } from "@/lib/metadata";
+
+/**
+ * 02.09.2026 — the homepage must never be baked at build time.
+ *
+ * `/` is a static route, so Next prerendered it during `next build` and served
+ * that HTML for the next hour (`initialRevalidateSeconds: 3600`). The build
+ * runs in a container that may not reach the CMS at all, and when the fetch
+ * failed the OLD code quietly fell back to a hardcoded homepage and shipped
+ * it — reproduced here: `/` served the hand-built composition while
+ * `/anasayfa` served the editor's real page, from the same deploy, with no
+ * error anywhere. Every other route fails loudly (404) when its content is
+ * missing; only this one had a plausible-looking wrong answer to give.
+ *
+ * `revalidate = 0` renders the route per request instead. It does NOT disable
+ * the CMS fetch cache: `cmsFetch` sets its own positive `next.revalidate`, and
+ * this version's docs are explicit that route-level `0` "leaves fetch requests
+ * that opt into 'force-cache' or use a positive revalidate as is"
+ * (node_modules/next/dist/docs/01-app/02-guides/caching-without-cache-components.md).
+ * So the homepage still serves from the same tag-invalidated cache the rest of
+ * the site uses — it just can't be frozen into the image.
+ */
+export const revalidate = 0;
 
 export async function generateMetadata(): Promise<Metadata> {
   const pageMeta = await getPageMeta("/");
@@ -23,64 +44,29 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /**
- * The slug an editor gives a Pages document to take over the homepage.
- * Publishing a page at this slug makes `/` render THAT page's blocks instead
- * of the composition below — the RFP's "every page manageable from the CMS"
- * asked for the homepage too, and it was the one page still assembled in code.
+ * `/` renders the `anasayfa` Pages document and nothing else.
  *
- * Kept as an opt-in rather than a migration: the hardcoded composition stays
- * as the fallback, so the homepage cannot break just because the CMS is
- * unreachable or the page is unpublished. Delete the Pages document and `/`
- * goes straight back to the code path.
+ * There used to be a hardcoded composition (Hero + Campaigns + Faq) behind
+ * this as a "the CMS might be down" safety net. It was removed on the user's
+ * call: a fallback that renders a DIFFERENT homepage doesn't protect anyone,
+ * it hides the outage and makes the CMS look like it isn't in charge of its
+ * own site. If the document is missing or unpublished, that is a real error
+ * and now looks like one.
  *
  * `/` never reaches the [...slug] catch-all (Next resolves this static route
- * first), so the page has to be read here explicitly.
+ * first), so the document has to be read here explicitly.
  */
-const HOMEPAGE_SLUG = "anasayfa";
-
 export default async function Home() {
   const cmsHomepage = await getPageBySlug(HOMEPAGE_SLUG);
-  if (cmsHomepage && cmsHomepage.layout.length > 0) {
-    return (
-      <main className="flex min-h-screen flex-col">
-        <AppDownloadBanner />
-        <Header />
-        {cmsHomepage.layout.map((block) => (
-          <BlockRenderer key={block.id ?? JSON.stringify(block)} block={block} />
-        ))}
-        <Footer />
-      </main>
-    );
-  }
+  if (!cmsHomepage || cmsHomepage.layout.length === 0) notFound();
 
-  // 02.09.2026: was `getHomepageFaqItems()`, which read FaqItems'
-  // `showOnHomepage`/`homepageOrder` pair. That flag only ever fed THIS
-  // branch, which stopped being reachable the day an `anasayfa` Pages
-  // document was published — an editor could tick "Anasayfada Göster" and
-  // nothing would ever change. Both fields are gone from the CMS now; this
-  // last-resort branch just shows the FAQ list in its normal order.
-  const [cmsCampaigns, cmsFaqItems] = await Promise.all([getCampaigns(), getFaqItems()]);
-
-  // RFP feedback 5.0: every one of these used to degrade to `undefined` so the
-  // component would substitute its own hardcoded copy — the homepage rendered
-  // identically whether the CMS was healthy or dead. Now an empty CMS result
-  // stays empty and the section simply doesn't render.
-  const featuredCampaigns = (cmsCampaigns ?? []).filter((c) => c.featured).map(campaignToCard);
-  const faqItems = (cmsFaqItems ?? []).map((f) => ({ question: f.question, answer: f.answer, deeplink: f.deeplink }));
-
-  // The step-phone and feature-highlight sections used to be fed from the
-  // ContentBlocks collection, which was retired on 29.08 — see the commit and
-  // AGENTS.md. They live in the `anasayfa` Pages document's own `stepPhones`
-  // and `featureHighlights` blocks now, which is the branch above; this
-  // CMS-unreachable fallback keeps the hero, campaigns and FAQ it can still
-  // source, and simply has no steps or highlights to show.
   return (
     <main className="flex min-h-screen flex-col">
       <AppDownloadBanner />
       <Header />
-      <Hero />
-      <Campaigns campaigns={featuredCampaigns} />
-      <Faq items={faqItems} />
+      {cmsHomepage.layout.map((block) => (
+        <BlockRenderer key={block.id ?? JSON.stringify(block)} block={block} />
+      ))}
       <Footer />
     </main>
   );
