@@ -241,8 +241,6 @@ export function campaignToCard(c: CmsCampaign) {
     imageAlt: c.image.alt || c.title,
     href: c.ctaUrl || (c.slug ? `/kampanyalar/${c.slug}` : "/kampanyalar"),
     linkLabel: c.ctaLabel,
-    startDate: c.startDate,
-    endDate: c.endDate,
   };
 }
 

@@ -40,16 +40,15 @@ export default async function Kampanyalar() {
   // RFP feedback 5.2: ONE list carrying the `featured` flag, not two
   // pre-split arrays — see CampaignsFilterableList for why the split had to
   // move out of here.
+  // 02.09.2026: no description or dates — the live site's campaign cards are
+  // just image + title + "Detayları gör" (see CardListGrid's removal note).
   const campaigns: FilterableCampaign[] = (cmsCampaigns ?? []).map((c) => ({
     id: c.id,
     image: c.image.url,
     title: c.title,
-    description: c.description,
     href: c.ctaUrl || (c.slug ? `/kampanyalar/${c.slug}` : undefined),
     category: c.category?.slug,
     linkLabel: c.ctaLabel,
-    startDate: c.startDate,
-    endDate: c.endDate,
     featured: c.featured,
   }));
   const faqs: FaqItem[] = (cmsFaqItems ?? []).map((f) => ({ question: f.question, answer: f.answer, deeplink: f.deeplink }));

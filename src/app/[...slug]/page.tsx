@@ -142,7 +142,7 @@ export async function BlockRenderer({ block }: { block: CmsPageBlock }) {
       }
       const items: CardListItem[] = (filtered ?? []).map((c) => {
         const card = campaignToCard(c);
-        return { id: card.id, image: card.image, title: card.title, description: card.description, href: card.href };
+        return { id: card.id, image: card.image, title: card.title, href: card.href };
       });
       // 1030px, not 1280px: every other section on a product page sits on the
       // live site's own content column, and the wider one made this block

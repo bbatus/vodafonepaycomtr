@@ -54,8 +54,21 @@ describe("CardListCard", () => {
     expect(container.querySelector("p.line-clamp-3")).toBeNull();
   });
 
-  it("renders the campaign date range when dates are set", () => {
+  it("shows a description when the item has one (blog cards)", () => {
+    render(<CardListCard item={{ ...baseItem, description: "Kısa özet" }} />);
+    expect(screen.getByText("Kısa özet")).toBeInTheDocument();
+  });
+
+  /**
+   * 02.09.2026: the live site's campaign cards carry no date at all — a
+   * previous pass added one, which this test used to cover. CardListCard no
+   * longer accepts startDate/endDate; CampaignDate's own test file covers the
+   * component, and the campaign detail page (its one remaining caller) has
+   * its own test for rendering it.
+   */
+  it("has no date-range support left on the card", () => {
+    // @ts-expect-error startDate/endDate were removed from CardListItem
     render(<CardListCard item={{ ...baseItem, startDate: "2026-07-14", endDate: "2026-08-15" }} />);
-    expect(screen.getByText(/14\.07\.2026 - 15\.08\.2026/)).toBeInTheDocument();
+    expect(screen.queryByText(/Kampanya Tarihi/)).not.toBeInTheDocument();
   });
 });

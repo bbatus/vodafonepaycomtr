@@ -1,20 +1,16 @@
 import { CalendarIcon } from "@/components/icons";
 
 /**
- * RFP feedback 5.3 — "Kampanya Tarihi 14.07.2026 - 15.08.2026 … kampanya
- * kartının altında tutmuşlar".
+ * RFP feedback 5.3, corrected 02.09.2026 against the live site.
  *
- * Checked against the live vodafonepay.com.tr first: the real site renders
- * this on the campaign DETAIL page (calendar glyph + "Kampanya Tarihi" +
- * `dd.mm.yyyy - dd.mm.yyyy`, sitting directly under the campaign card block
- * and above the "Kampanya Detay" heading) — its listing cards carry no date
- * at all. We render it in BOTH places because the brief asks for it on the
- * card too; this component is the single definition so the two can't drift
- * into different labels or date formats.
+ * vodafonepay.com.tr renders this ONLY on the campaign DETAIL page (calendar
+ * glyph + "Kampanya Tarihi" + `dd.mm.yyyy - dd.mm.yyyy`, directly under the
+ * title/description column, left-aligned with them) — its listing cards carry
+ * no date at all, just image + title + "Detayları gör". An earlier pass added
+ * it to the cards too; that's been removed (see CardListGrid/CardListCard),
+ * so this component now has exactly the one caller the live site has.
  *
- * Renders nothing at all when neither date is set — an empty "Kampanya
- * Tarihi" line with nothing after it is worse than no line, and it would
- * also knock the listing grid's cards out of alignment.
+ * Renders nothing at all when neither date is set.
  */
 export function CampaignDate({
   startDate,

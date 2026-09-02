@@ -97,4 +97,34 @@ describe("KampanyaDetay", () => {
     expect(screen.getByText("Kampanya Koşulları")).toBeInTheDocument();
     expect(screen.getByText("Şart 1")).toBeInTheDocument();
   });
+
+  /**
+   * 02.09.2026 kullanıcı geri bildirimi, canlı siteye göre: "Kampanya
+   * Detay"'dan footer'a kadar olan alan gri bir section wrapper olmalı. That
+   * wrapper (and its "Kampanya Detay" heading) only exists when there is
+   * something to put in it.
+   */
+  it("wraps the body in a 'Kampanya Detay' section inside the gray background wrapper", async () => {
+    draftModeMock.mockResolvedValue({ isEnabled: false });
+    vi.mocked(getCampaignBySlug).mockResolvedValue({
+      ...campaign,
+      body: { root: { children: [{ type: "paragraph", children: [{ type: "text", text: "Gövde metni" }] }] } },
+    } as never);
+
+    const { container } = render(await KampanyaDetay({ params: Promise.resolve({ slug: "yaz-kampanyasi" }) }));
+
+    expect(screen.getByText("Kampanya Detay")).toBeInTheDocument();
+    expect(screen.getByText("Gövde metni")).toBeInTheDocument();
+    expect(container.querySelector(".bg-\\[\\#f4f4f4\\]")).not.toBeNull();
+  });
+
+  it("renders no gray wrapper section at all when there is neither a body nor terms", async () => {
+    draftModeMock.mockResolvedValue({ isEnabled: false });
+    vi.mocked(getCampaignBySlug).mockResolvedValue(campaign as never);
+
+    const { container } = render(await KampanyaDetay({ params: Promise.resolve({ slug: "yaz-kampanyasi" }) }));
+
+    expect(screen.queryByText("Kampanya Detay")).not.toBeInTheDocument();
+    expect(container.querySelector(".bg-\\[\\#f4f4f4\\]")).toBeNull();
+  });
 });

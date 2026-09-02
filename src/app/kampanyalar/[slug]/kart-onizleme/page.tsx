@@ -26,7 +26,6 @@ export default async function KampanyaKartOnizleme({ params }: { params: Promise
           item={{
             image: campaign.image.url,
             title: campaign.title,
-            description: campaign.description,
             category: campaign.category?.slug,
             linkLabel: campaign.ctaLabel,
           }}
