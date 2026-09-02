@@ -13,7 +13,6 @@ import {
   getFeeRows,
   getFooterCampaigns,
   getFooterFaqItems,
-  getHomepageFaqItems,
   getLegalPage,
   getLimitTables,
   getNavLinks,
@@ -280,14 +279,6 @@ describe("cms.ts fetch-backed getters", () => {
     const doc = { id: "f1", question: "Q?", answer: "A", category: { label: "Genel", slug: "genel" }, order: 0 };
     vi.mocked(fetch).mockImplementation(() => okJson({ docs: [doc] }));
     expect(await getFooterFaqItems()).toEqual([doc]);
-  });
-
-  it("getHomepageFaqItems filters by showOnHomepage and sorts by homepageOrder", async () => {
-    vi.mocked(fetch).mockImplementation(() => okJson({ docs: [] }));
-    await getHomepageFaqItems();
-    const calledUrl = vi.mocked(fetch).mock.calls[0][0] as string;
-    expect(calledUrl).toContain("where[showOnHomepage][equals]=true");
-    expect(calledUrl).toContain("sort=homepageOrder");
   });
 
   it("getCategories requires a scope and passes it through as a filter", async () => {

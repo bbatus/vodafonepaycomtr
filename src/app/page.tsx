@@ -5,7 +5,7 @@ import { Hero } from "@/components/Hero";
 import { Campaigns } from "@/components/Campaigns";
 import { Faq } from "@/components/Faq";
 import { Footer } from "@/components/Footer";
-import { campaignToCard, getCampaigns, getHomepageFaqItems, getPageBySlug, getPageMeta } from "@/lib/cms";
+import { campaignToCard, getCampaigns, getFaqItems, getPageBySlug, getPageMeta } from "@/lib/cms";
 import { BlockRenderer } from "@/app/[...slug]/page";
 import { buildMetadata } from "@/lib/metadata";
 
@@ -53,7 +53,13 @@ export default async function Home() {
     );
   }
 
-  const [cmsCampaigns, cmsFaqItems] = await Promise.all([getCampaigns(), getHomepageFaqItems()]);
+  // 02.09.2026: was `getHomepageFaqItems()`, which read FaqItems'
+  // `showOnHomepage`/`homepageOrder` pair. That flag only ever fed THIS
+  // branch, which stopped being reachable the day an `anasayfa` Pages
+  // document was published — an editor could tick "Anasayfada Göster" and
+  // nothing would ever change. Both fields are gone from the CMS now; this
+  // last-resort branch just shows the FAQ list in its normal order.
+  const [cmsCampaigns, cmsFaqItems] = await Promise.all([getCampaigns(), getFaqItems()]);
 
   // RFP feedback 5.0: every one of these used to degrade to `undefined` so the
   // component would substitute its own hardcoded copy — the homepage rendered

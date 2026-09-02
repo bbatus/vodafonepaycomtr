@@ -1,14 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import Home from "@/app/page";
-import { getCampaigns, getHomepageFaqItems, getPageBySlug, getPageMeta } from "@/lib/cms";
+import { getCampaigns, getFaqItems, getPageBySlug, getPageMeta } from "@/lib/cms";
 
 vi.mock("@/lib/cms", async () => {
   const actual = await vi.importActual<typeof import("@/lib/cms")>("@/lib/cms");
   return {
     ...actual,
     getCampaigns: vi.fn(),
-    getHomepageFaqItems: vi.fn(),
+    getFaqItems: vi.fn(),
     getPageMeta: vi.fn(),
     getNavLinks: vi.fn(),
     getPageBySlug: vi.fn(),
@@ -29,7 +29,7 @@ vi.mock("@/components/Footer", () => ({ Footer: () => <footer>Footer</footer> })
 function mockEmpty() {
   vi.mocked(getPageBySlug).mockResolvedValue(null);
   vi.mocked(getCampaigns).mockResolvedValue(null);
-  vi.mocked(getHomepageFaqItems).mockResolvedValue(null);
+  vi.mocked(getFaqItems).mockResolvedValue(null);
   vi.mocked(getPageMeta).mockResolvedValue(null);
 }
 
@@ -56,7 +56,7 @@ describe("Home", () => {
 
   it("renders homepage FAQ items from the CMS", async () => {
     mockEmpty();
-    vi.mocked(getHomepageFaqItems).mockResolvedValue([{ question: "Soru?", answer: "Cevap", deeplink: undefined }] as never);
+    vi.mocked(getFaqItems).mockResolvedValue([{ question: "Soru?", answer: "Cevap", deeplink: undefined }] as never);
 
     render(await Home());
 

@@ -302,24 +302,6 @@ export async function getFooterFaqItems(): Promise<CmsFaqItem[] | null> {
 }
 
 /**
- * Homepage FAQ block — an independent `showOnHomepage` flag (cms/src/
- * collections/FaqItems.ts), not the "Anasayfa" category. A question can
- * belong to any category (or none) and still show here; the "Anasayfa"
- * category remains its own separate /sikca-sorulan-sorular tab. Sorted by
- * `homepageOrder`, which the CMS scopes/auto-numbers independently of the
- * per-category `order` field — mixing questions from different categories
- * onto one page means their individual `order` values aren't comparable.
- */
-export async function getHomepageFaqItems(): Promise<CmsFaqItem[] | null> {
-  const data = await cmsFetch(
-    "/faq-items?depth=1&limit=50&sort=homepageOrder&where[showOnHomepage][equals]=true",
-    "faq-items",
-    listResponseSchema(faqItemSchema)
-  );
-  return data?.docs ?? null;
-}
-
-/**
  * RFP follow-up: `BlogPosts.excerpt` (a separately-authored short summary)
  * was removed — a real post had the entire article pasted into it while
  * `body` sat empty, and even capped at 200 chars it was still a second
@@ -853,14 +835,32 @@ const videoListBlockSchema = z.object({
   darkBackgroundImage: mediaSchema.nullable().optional().transform((v) => v ?? undefined),
   videos: z.array(z.object({ title: z.string(), youtubeId: z.string() })),
 });
-/** See Pages.ts's VideosWithTabsMarkerBlock/LeadFormCtaBlock comment — fields:[] by design. */
 const videosWithTabsMarkerBlockSchema = z.object({
   blockType: z.literal("videosWithTabsMarker"),
   id: z.string().optional(),
+  tabs: z
+    .array(
+      z.object({
+        label: z.string(),
+        items: z
+          .array(z.object({ label: z.string(), thumbnail: mediaSchema.nullable().optional() }))
+          .nullable()
+          .optional()
+          .transform((v) => v ?? []),
+      })
+    )
+    .nullable()
+    .optional()
+    .transform((v) => v ?? []),
 });
 const leadFormCtaBlockSchema = z.object({
   blockType: z.literal("leadFormCta"),
   id: z.string().optional(),
+  backgroundImage: mediaSchema.nullable().optional(),
+  icon: mediaSchema.nullable().optional(),
+  text: nullableString(),
+  ctaLabel: nullableString(),
+  ctaUrl: nullableString(),
 });
 
 const pageBlockSchema = z.discriminatedUnion("blockType", [

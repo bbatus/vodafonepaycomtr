@@ -449,10 +449,18 @@ export async function BlockRenderer({ block }: { block: CmsPageBlock }) {
       );
 
     case "videosWithTabsMarker":
-      return <VideosWithTabs />;
+      return <VideosWithTabs tabs={block.tabs} />;
 
     case "leadFormCta":
-      return <LeadFormCta />;
+      return (
+        <LeadFormCta
+          backgroundImage={block.backgroundImage}
+          icon={block.icon}
+          text={block.text}
+          ctaLabel={block.ctaLabel}
+          ctaUrl={block.ctaUrl}
+        />
+      );
 
     default:
       return null;

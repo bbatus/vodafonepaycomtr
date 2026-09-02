@@ -381,13 +381,51 @@ describe("BlockRenderer", () => {
     expect(container.querySelector("section")?.getAttribute("style")).toContain(image.url);
   });
 
-  it("videosWithTabsMarker: renders the fixed VideosWithTabs component", async () => {
-    render(await BlockRenderer({ block: { blockType: "videosWithTabsMarker" } }));
-    expect(screen.getByText(/Faturana Yansıt'ı alışverişte nasıl kullanırım\?/)).toBeInTheDocument();
+  // 02.09.2026: both blocks used to be fields:[] markers rendering someone
+  // else's hardcoded copy. They carry their own content now.
+  it("videosWithTabsMarker: renders the tabs the editor configured", async () => {
+    render(
+      await BlockRenderer({
+        block: {
+          blockType: "videosWithTabsMarker",
+          tabs: [{ label: "Nasıl açarım?", items: [{ label: "App Store", thumbnail: image }] }],
+        },
+      })
+    );
+    expect(screen.getByText("Nasıl açarım?")).toBeInTheDocument();
+    expect(screen.getByText("App Store")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: image.alt })).toBeInTheDocument();
   });
 
-  it("leadFormCta: renders the fixed LeadFormCta component", async () => {
-    render(await BlockRenderer({ block: { blockType: "leadFormCta" } }));
+  it("videosWithTabsMarker: renders nothing when no tabs are configured", async () => {
+    const { container } = render(await BlockRenderer({ block: { blockType: "videosWithTabsMarker", tabs: [] } }));
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("leadFormCta: uses the editor's image, text and link", async () => {
+    const { container } = render(
+      await BlockRenderer({
+        block: {
+          blockType: "leadFormCta",
+          backgroundImage: image,
+          icon: null,
+          text: "Üye işyerimiz olun",
+          ctaLabel: "Başvur",
+          ctaUrl: "/iletisim",
+        },
+      })
+    );
+    expect(screen.getByText("Üye işyerimiz olun")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Başvur" })).toHaveAttribute("href", "/iletisim");
+    expect(container.querySelector("div[style]")?.getAttribute("style")).toContain(image.url);
+  });
+
+  it("leadFormCta: falls back to the built-in banner when nothing is set", async () => {
+    render(
+      await BlockRenderer({
+        block: { blockType: "leadFormCta", backgroundImage: null, icon: null, text: undefined, ctaLabel: undefined, ctaUrl: undefined },
+      })
+    );
     expect(screen.getByText("Formu doldurun")).toBeInTheDocument();
   });
 });

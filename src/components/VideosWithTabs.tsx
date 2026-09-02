@@ -1,20 +1,25 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 
-const tabs = [
-  {
-    label: "Faturana Yansıt'ı alışverişte nasıl kullanırım?",
-    items: ["Hesap Doğrulama", "YouTube Premium", "Yanımda Premium", "Google Play", "App Store"],
-  },
-  {
-    label: "Faturana Yansıt'ı nasıl açarım?",
-    items: ["App Store", "Google Play"],
-  },
-];
+export type VideoTab = {
+  label: string;
+  items: { label: string; thumbnail?: { url: string; alt?: string } | null }[];
+};
 
-export function VideosWithTabs() {
+/**
+ * Was a fixed, /faturana-yansit-specific list baked into this file, behind a
+ * CMS block with no fields at all. As of 02.09.2026 the block carries its own
+ * tabs (Pages.ts's VideosWithTabsMarkerBlock) — an editor picks the labels
+ * and each card's image. A page that still has the block with no data renders
+ * nothing rather than someone else's hardcoded copy.
+ */
+export function VideosWithTabs({ tabs = [] }: { tabs?: VideoTab[] }) {
   const [activeTab, setActiveTab] = useState(0);
+
+  if (tabs.length === 0) return null;
+  const active = tabs[Math.min(activeTab, tabs.length - 1)];
 
   return (
     <section className="mx-auto w-full max-w-[1030px] px-4 py-16">
@@ -38,14 +43,18 @@ export function VideosWithTabs() {
       </div>
 
       <div className="mt-8 flex gap-x-4 overflow-x-auto pb-2">
-        {tabs[activeTab].items.map((item) => (
-          <div key={item} className="flex w-[180px] shrink-0 flex-col items-center gap-y-3 rounded-xl bg-vf-gray p-4">
-            <div className="flex h-[280px] w-full items-center justify-center rounded-lg bg-black/90">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/90">
-                <div className="ml-1 h-0 w-0 border-y-8 border-l-[14px] border-y-transparent border-l-black" />
-              </div>
+        {active.items.map((item) => (
+          <div key={item.label} className="flex w-[180px] shrink-0 flex-col items-center gap-y-3 rounded-xl bg-vf-gray p-4">
+            <div className="relative flex h-[280px] w-full items-center justify-center overflow-hidden rounded-lg bg-black/90">
+              {item.thumbnail ? (
+                <Image src={item.thumbnail.url} alt={item.thumbnail.alt ?? item.label} fill className="object-cover" unoptimized />
+              ) : (
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/90">
+                  <div className="ml-1 h-0 w-0 border-y-8 border-l-[14px] border-y-transparent border-l-black" />
+                </div>
+              )}
             </div>
-            <p className="text-center text-sm font-bold text-black">{item}</p>
+            <p className="text-center text-sm font-bold text-black">{item.label}</p>
           </div>
         ))}
       </div>
