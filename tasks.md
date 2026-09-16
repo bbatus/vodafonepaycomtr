@@ -41,3 +41,27 @@ gerçek `--build` sonrası: `/kampanyalar` kartları sadece görsel+başlık+but
 sayfasında iki sütunlu üst blok + "Kampanya Detay"tan footer'a kadar gri
 section, tüm görünür metin `vodafoneLight/Regular/Bold` font-family (başka
 hiçbir font yok).
+
+## 48a-site. 'Ürünler' menüsü ve site haritası tek kaynaktan okuyor (16.09.2026)
+
+CMS tarafındaki karşılığı ve tam gerekçesi: `clover/tasks.md` madde 48.
+
+`Header.tsx`, Ürünler açılır listesini NavLinks(header-products) +
+Pages(showInProductsMenu) olarak birleştirip **href'e göre tekilleştirmiyordu**
+— aynı sayfayı iki yoldan ekleyen editör menüde onu iki kez görüyordu. CMS'te
+ikinci kaynak kaldırıldığı için burada da tek kaynağa indi.
+
+- [x] `Header.tsx`: Ürünler artık sadece Pages'ten.
+- [x] `site-haritasi/page.tsx`: "Ürünler" grubu da NavLinks(header-products)'tan
+      geliyordu — kaynak kalkınca sessizce düşecekti; aynı Pages kaynağından
+      yeniden kuruldu, böylece site haritası ile header ayrışamıyor.
+- [x] `cms.ts`: `header-products` union'da "emekli" olarak kaldı (göçü
+      uygulanmamış bir DB hâlâ o değeri taşıyan satırlar içerebilir; okunmuyor).
+- [x] Testler: bayat bir header-products satırının sayfayı ikinci kez
+      listelemediğini kanıtlayan regresyon testi + site haritası Ürünler grubu
+      testi. Site 394/394, tsc/eslint temiz.
+
+**Canlı doğrulama (docker `--build` sonrası):** Ürünler menüsü 6 ürün, her biri
+tek kez, sıra korunmuş (Vodafone Pay Uygulaması → Kart → QR ile Öde → Faturana
+Yansıt → Anında Bakiye → Vodafone Pay Detayları); `/site-haritasi` aynı 6
+kaydı gösteriyor, diğer gruplar bozulmadı.
