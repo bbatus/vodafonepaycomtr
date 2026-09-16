@@ -5,7 +5,7 @@ import { Header } from "@/components/Header";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { Footer } from "@/components/Footer";
 import { buildPageMetadata } from "@/lib/metadata";
-import { getNavLinks, getPageMeta, type NavLinkSection } from "@/lib/cms";
+import { getNavLinks, getPageMeta, getProductsMenuPages, type NavLinkSection } from "@/lib/cms";
 
 export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata("/site-haritasi", {
@@ -17,9 +17,15 @@ export async function generateMetadata(): Promise<Metadata> {
 type Group = { title: string; links: { label: string; href: string }[] };
 
 /** Same sections Header/Footer already read via getNavLinks() — reusing them here means
- * editing a nav link in the CMS keeps this page in sync instead of drifting from a separate copy. */
+ * editing a nav link in the CMS keeps this page in sync instead of drifting from a separate copy.
+ *
+ * 16.09.2026: "Ürünler" is deliberately NOT in this map any more. That group used to be
+ * built from NavLinks(section=header-products), a section the CMS no longer offers — the
+ * dropdown is sourced solely from Pages' own `showInProductsMenu` box now (see Header.tsx
+ * for the full reasoning). Leaving the entry here would have quietly dropped the entire
+ * Ürünler group from this page; it is rebuilt from that same Pages source below, so the
+ * site map and the header can't disagree about what the products are. */
 const SECTION_TO_GROUP_TITLE: Record<string, string> = {
-  "header-products": "Ürünler",
   "header-main": "İçerikler",
   "footer-kurumsal": "Kurumsal",
   "footer-yasal": "Yasal",
@@ -74,19 +80,35 @@ const fallbackGroups: Group[] = [
 ];
 
 export default async function SiteHaritasi() {
-  const cmsNavLinks = await getNavLinks();
+  const [cmsNavLinks, productPages] = await Promise.all([getNavLinks(), getProductsMenuPages()]);
 
-  const groups: Group[] = cmsNavLinks?.length
-    ? (Object.keys(SECTION_TO_GROUP_TITLE) as NavLinkSection[])
-        .map((section) => ({
-          title: SECTION_TO_GROUP_TITLE[section],
-          links: cmsNavLinks
-            .filter((l) => l.section === section)
+  // Same single source, same order as the header's Ürünler dropdown.
+  const productGroup: Group[] = productPages?.length
+    ? [
+        {
+          title: "Ürünler",
+          links: productPages
+            .map((p) => ({
+              link: { label: p.productsMenuLabel || p.title, href: `/${p.slug}` },
+              order: p.productsMenuOrder ?? Number.MAX_SAFE_INTEGER,
+            }))
             .sort((a, b) => a.order - b.order)
-            .map((l) => ({ label: l.label, href: l.href })),
-        }))
-        .filter((group) => group.links.length > 0)
-    : fallbackGroups;
+            .map((p) => p.link),
+        },
+      ]
+    : [];
+
+  const navGroups: Group[] = (Object.keys(SECTION_TO_GROUP_TITLE) as NavLinkSection[])
+    .map((section) => ({
+      title: SECTION_TO_GROUP_TITLE[section],
+      links: (cmsNavLinks ?? [])
+        .filter((l) => l.section === section)
+        .sort((a, b) => a.order - b.order)
+        .map((l) => ({ label: l.label, href: l.href })),
+    }))
+    .filter((group) => group.links.length > 0);
+
+  const groups: Group[] = productGroup.length || navGroups.length ? [...productGroup, ...navGroups] : fallbackGroups;
 
   const pageMeta = await getPageMeta("/site-haritasi");
 

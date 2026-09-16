@@ -32,30 +32,28 @@ export async function Header() {
   const toLink = (l: NonNullable<typeof cmsLinks>[number]): NavLink => ({ label: l.label, href: l.href, mobileHref: l.mobileHref });
 
   /**
-   * The "Ürünler" dropdown has TWO sources, on purpose:
-   *  - NavLinks(section=header-products) — the only way to point at a route
-   *    that isn't a Pages document (/faturana-yansit, /vodafone-pay-kart)
-   *    or at an external URL.
-   *  - Pages(showInProductsMenu) — an editor-built page listing ITSELF, so
-   *    nobody has to hand-copy its slug into a second collection.
+   * The "Ürünler" dropdown has exactly ONE source: a Pages document ticking
+   * its own `showInProductsMenu` box.
    *
-   * Both carry a 1-based position, so they're merged into one list and
-   * sorted by it. A page with no explicit number sorts last (the CMS hook
-   * normally assigns one, so this only covers rows written before the field
-   * existed); ties keep NavLinks first, deterministically.
+   * It used to have two — this also merged NavLinks(section=header-products)
+   * — and the two were concatenated and sorted but never deduplicated by
+   * href. An editor who created a nav link AND ticked the box on the page at
+   * the same address got the same page listed twice in the menu (reported
+   * live 16.09.2026). Rather than dedupe, the second source was removed at
+   * the CMS end (see NavLinks.ts's `section` options for the full reasoning
+   * and what capability that gave up), which makes the duplicate structurally
+   * impossible instead of merely filtered.
+   *
+   * Sorted by the page's own 1-based `productsMenuOrder`. A page with no
+   * explicit number sorts last — the CMS hook normally assigns one, so this
+   * only covers rows written before that field existed.
    */
-  const orderedProducts: { link: NavLink; order: number; source: number }[] = [
-    ...(cmsLinks ?? [])
-      .filter((l) => l.section === "header-products")
-      .map((l) => ({ link: toLink(l), order: l.order, source: 0 })),
-    ...(productPages ?? []).map((p) => ({
+  const productLinks: NavLink[] = (productPages ?? [])
+    .map((p) => ({
       link: { label: p.productsMenuLabel || p.title, href: `/${p.slug}` },
       order: p.productsMenuOrder ?? Number.MAX_SAFE_INTEGER,
-      source: 1,
-    })),
-  ];
-  const productLinks = orderedProducts
-    .sort((a, b) => a.order - b.order || a.source - b.source)
+    }))
+    .sort((a, b) => a.order - b.order)
     .map((p) => p.link);
 
   const navLinks = cmsLinks?.length

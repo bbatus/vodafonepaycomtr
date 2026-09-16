@@ -36,7 +36,6 @@ describe("Header", () => {
 
   it("uses CMS nav links, split by section, over the hardcoded fallback", async () => {
     vi.mocked(getNavLinks).mockResolvedValue([
-      { label: "CMS Ürün Linki", href: "/cms-urun", section: "header-products", order: 1 },
       { label: "CMS Menü Linki", href: "/cms-menu", section: "header-main", order: 1 },
     ] as never);
     await renderHeader();
@@ -45,7 +44,7 @@ describe("Header", () => {
     expect(screen.queryByText("Kampanyalar")).not.toBeInTheDocument();
   });
 
-  it("falls back to the hardcoded product links specifically when the CMS has main-nav links but none tagged header-products", async () => {
+  it("falls back to the hardcoded product links when no page opted into the Ürünler menu", async () => {
     vi.mocked(getNavLinks).mockResolvedValue([
       { label: "CMS Menü Linki", href: "/cms-menu", section: "header-main", order: 1 },
     ] as never);
@@ -53,6 +52,32 @@ describe("Header", () => {
     await openProductsMenu();
 
     expect(screen.getByText("Vodafone Pay Kart")).toBeInTheDocument();
+  });
+
+  /**
+   * 16.09.2026 regression guard. The Ürünler dropdown used to merge
+   * NavLinks(section=header-products) with Pages(showInProductsMenu) without
+   * deduplicating by href, so a page reachable through both routes was listed
+   * twice. `header-products` is gone from the CMS; a stale row left in a
+   * database that hasn't had the data migration applied must simply be
+   * IGNORED here, never rendered as a second entry.
+   */
+  it("ignores a leftover header-products nav link instead of listing the page twice", async () => {
+    vi.mocked(getNavLinks).mockResolvedValue([
+      { label: "Vodafone Pay Kart", href: "/vodafone-pay-kart", section: "header-products", order: 1 },
+      { label: "CMS Menü Linki", href: "/cms-menu", section: "header-main", order: 1 },
+    ] as never);
+    vi.mocked(getProductsMenuPages).mockResolvedValue([
+      { id: "1", title: "Vodafone Pay Kart", slug: "vodafone-pay-kart", productsMenuOrder: 1 },
+    ] as never);
+    await renderHeader();
+    await openProductsMenu();
+
+    // Exactly one entry for the page. Before this change the same page came
+    // out of both sources and was rendered twice, side by side.
+    const links = screen.getAllByRole("link", { name: "Vodafone Pay Kart" });
+    expect(links).toHaveLength(1);
+    expect(links[0]).toHaveAttribute("href", "/vodafone-pay-kart");
   });
 
   describe("pages that opt into the Ürünler menu themselves (showInProductsMenu)", () => {
@@ -82,12 +107,11 @@ describe("Header", () => {
       expect(screen.queryByText("Vodafone Pay Kart Nedir?")).not.toBeInTheDocument();
     });
 
-    it("merges NavLinks and Pages into one list ordered by their shared position number", async () => {
-      vi.mocked(getNavLinks).mockResolvedValue([
-        { label: "Elle Yazılmış Rota", href: "/faturana-yansit", section: "header-products", order: 2 },
-      ] as never);
+    it("orders the menu by each page's own position number", async () => {
+      vi.mocked(getNavLinks).mockResolvedValue(null);
       vi.mocked(getProductsMenuPages).mockResolvedValue([
         { id: "1", title: "Üçüncü Sayfa", slug: "ucuncu", productsMenuOrder: 3 },
+        { id: "3", title: "İkinci Sayfa", slug: "ikinci", productsMenuOrder: 2 },
         { id: "2", title: "Birinci Sayfa", slug: "birinci", productsMenuOrder: 1 },
       ] as never);
       await renderHeader();
@@ -97,9 +121,9 @@ describe("Header", () => {
       const labels = screen
         .getAllByRole("link")
         .map((a) => a.textContent)
-        .filter((t): t is string => ["Birinci Sayfa", "Elle Yazılmış Rota", "Üçüncü Sayfa"].includes(t ?? ""));
+        .filter((t): t is string => ["Birinci Sayfa", "İkinci Sayfa", "Üçüncü Sayfa"].includes(t ?? ""));
 
-      expect(labels.slice(0, 3)).toEqual(["Birinci Sayfa", "Elle Yazılmış Rota", "Üçüncü Sayfa"]);
+      expect(labels.slice(0, 3)).toEqual(["Birinci Sayfa", "İkinci Sayfa", "Üçüncü Sayfa"]);
     });
 
     it("puts a page with no position number last rather than dropping it", async () => {

@@ -461,6 +461,11 @@ export async function getLimitTables(): Promise<CmsLimitTable[] | null> {
  * consistency with `FooterColumn.section`.
  */
 export type NavLinkSection =
+  // Retired 16.09.2026 — the CMS no longer offers this section (the "Ürünler"
+  // dropdown is sourced solely from Pages' own `showInProductsMenu` now, see
+  // Header.tsx). It stays in the union because a database that hasn't had the
+  // data migration applied can still hold rows carrying this value; nothing
+  // reads them any more, so they are simply ignored.
   | "header-products"
   | "header-main"
   | "footer-kurumsal"
