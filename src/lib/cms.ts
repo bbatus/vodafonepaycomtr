@@ -216,6 +216,10 @@ const campaignDetailSchema = z.object({
   seoKeywords: nullableString(),
   startDate: nullableString(),
   endDate: nullableString(),
+  // 17.09.2026: optional "Tanımlama Süresi" / "Katılım" info boxes on the
+  // detail page (live parity) — a box only renders when its value is set.
+  assignmentPeriod: nullableString(),
+  participation: nullableString(),
   ctaLabel: nullableString(),
   ctaUrl: nullableString(),
 });
@@ -240,7 +244,7 @@ export function campaignToCard(c: CmsCampaign) {
     image: c.image.url,
     imageAlt: c.image.alt || c.title,
     href: c.ctaUrl || (c.slug ? `/kampanyalar/${c.slug}` : "/kampanyalar"),
-    linkLabel: c.ctaLabel,
+    linkLabel: c.ctaLabel ?? undefined,
   };
 }
 
@@ -707,6 +711,9 @@ const campaignGridBlockSchema = z.object({
   blockType: z.literal("campaignGrid"),
   id: z.string().optional(),
   heading: z.string(),
+  // 17.09.2026: "grid" = /kampanyalar card grid, "carousel" = homepage band.
+  // Blocks saved before the field existed are grids.
+  layout: z.enum(["grid", "carousel"]).nullish().transform((v) => v ?? "grid"),
   category: nullableString(),
   // 01.09.2026: editörün kategori içinden özellikle seçtiği kampanyalar —
   // boşsa (geriye dönük uyumluluk) kategorinin TÜMÜ gösterilir (bkz.

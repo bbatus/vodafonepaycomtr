@@ -73,7 +73,7 @@ describe("BlockRenderer", () => {
       { id: "1", title: "Kart Kampanyası", description: "D", image, category: { label: "Kart", slug: "kart" }, featured: false, slug: "kart-k", ctaLabel: undefined, ctaUrl: undefined, startDate: undefined, endDate: undefined },
       { id: "2", title: "Ödeme Kampanyası", description: "D", image, category: { label: "Ödeme", slug: "odeme" }, featured: false, slug: "odeme-k", ctaLabel: undefined, ctaUrl: undefined, startDate: undefined, endDate: undefined },
     ] as never);
-    render(await BlockRenderer({ block: { blockType: "campaignGrid", heading: "Kampanyalar", category: "kart", campaigns: [] } }));
+    render(await BlockRenderer({ block: { blockType: "campaignGrid", layout: "grid", heading: "Kampanyalar", category: "kart", campaigns: [] } }));
     expect(screen.getByText("Kart Kampanyası")).toBeInTheDocument();
     expect(screen.queryByText("Ödeme Kampanyası")).not.toBeInTheDocument();
   });
@@ -82,7 +82,7 @@ describe("BlockRenderer", () => {
     vi.mocked(getCampaigns).mockResolvedValue([
       { id: "1", title: "Kart Kampanyası", description: "D", image, category: { label: "Kart", slug: "kart" }, featured: false, slug: "kart-k", ctaLabel: undefined, ctaUrl: undefined, startDate: undefined, endDate: undefined },
     ] as never);
-    render(await BlockRenderer({ block: { blockType: "campaignGrid", heading: "Kampanyalar", category: undefined, campaigns: [] } }));
+    render(await BlockRenderer({ block: { blockType: "campaignGrid", layout: "grid", heading: "Kampanyalar", category: undefined, campaigns: [] } }));
     expect(screen.getByText("Kart Kampanyası")).toBeInTheDocument();
   });
 
@@ -95,6 +95,7 @@ describe("BlockRenderer", () => {
       await BlockRenderer({
         block: {
           blockType: "campaignGrid",
+          layout: "grid",
           heading: "Kampanyalar",
           category: "kart",
           campaigns: [
@@ -104,6 +105,25 @@ describe("BlockRenderer", () => {
       })
     );
     expect(screen.getByText("Ödeme Kampanyası")).toBeInTheDocument();
+  });
+
+  it("campaignGrid: the carousel layout renders the homepage band with an 'İncele' link", async () => {
+    render(
+      await BlockRenderer({
+        block: {
+          blockType: "campaignGrid",
+          layout: "carousel",
+          heading: "Kampanyalar",
+          category: "kart",
+          campaigns: [
+            { id: "2", title: "Şerit Kampanyası", description: "D", image, category: { label: "Kart", slug: "kart" }, featured: false, slug: "serit-k", ctaLabel: undefined, ctaUrl: undefined, startDate: undefined, endDate: undefined },
+          ],
+        },
+      })
+    );
+    expect(screen.getAllByText("Şerit Kampanyası").length).toBeGreaterThan(0);
+    expect(screen.getByText("İncele")).toBeInTheDocument();
+    expect(screen.getByLabelText("Sonraki kampanya")).toBeInTheDocument();
   });
 
   it("video: embeds the given YouTube id", async () => {

@@ -102,3 +102,25 @@ Kullanıcı: "Ücretler ve limitler gibi SSS'yi de eşitleyelim." Canlıda iki a
 - Doğrulama (1440px, `next dev` 3098 + CMS 3099): SSS sayfasında h1→butonlar 88px, butonlar→ilk soru 92px, kart 1280×68, h3/cevap fontları ve renkleri canlıyla aynı. Blokta (/faturana-yansit, /aninda-bakiye) başlık 28/35 ve 80px üst boşluk, kart 1030×68, cevap 18/27 aynı. Sayfa bizde 14px aşağıdan başlıyor: yerel veride header'a "layout Test Sayfası" linki eklendiği için menü iki satıra düşüyor (veri, SSS kaynaklı değil). Canlıdaki bazı cevaplarda Word'den gelen Times New Roman/Aptos satır içi stilleri var; bunlar kopyalanmadı.
 - Yerel veri notu: yerelde "aninda-bakiye" ve "kampanyalar" SSS kategorilerinde yayında soru yok, bu yüzden /aninda-bakiye, anasayfa ve /kampanyalar'da blok boş görünüyor. Bileşen, dolu olan /faturana-yansit üzerinden doğrulandı.
 - Testler 408/408, tsc ve eslint temiz.
+
+## 55-site. Kampanyalar: liste, detay ve anasayfa şeridi canlıyla birebir (17.09.2026)
+
+Kullanıcı: "Kampanyaları da ücretler/SSS gibi eşitleyelim; detayda Kampanya Tarihi, Tanımlama Süresi, Katılım alanları da olsun, opsiyonel olsun." Canlıda üç widget var: `Campaigns` (/kampanyalar), `Campaign` (detay, örn. /kampanyalar/yemeksepeti-harcamana-400tlye-varan-avantaj), `Homepage\VpayKampanya` (anasayfa şeridi, üstündeki "Kampanyalar · İncele" satırıyla). Hepsi lazy-load sonrası render edildi; computed stiller, CSSOM kuralları ve davranış (Devamını Oku, carousel) canlıdan ölçüldü.
+- `CampaignCard.tsx` (yeni): kart 361px genişlik, 6px köşe, `shadow-md`, `p-5`; görsel 321×180 `object-contain`; başlık VodafoneBold 20/28 #333; ortalanmış "Detayları gör" 18/26 #E60000, sistem fontunda (canlıda o sınıf tanımsız) ve 20px #BD0000 okla. Izgara 1/2/3 sütun, `gap-6 lg:mt-10 lg:ml-8`; bölüm başlığı 24/lg:28, satır yüksekliği 34.
+- `CampaignsFilterableList`: başlık sütunu 1030px, `lg:pt-64px`, VodafoneLight 40/48. Masaüstünde butonlar VodafoneRegular 18/28, #7E7E7E çerçeve, seçili #00697C; mobilde 16px, 40px yükseklik, çerçevesiz, yana kayan şerit. "Tümü"de "Bu ayın favorileri" (kartlar +mb-10) ve "Tüm Kampanyalar"; bir kategori seçilince tek ızgara "<Kategori> kampanyaları" başlığıyla. `?kategori=` URL'si + Suspense fallback.
+- Detay sayfası baştan yazıldı: breadcrumb yok (canlıda da yok), #f4f4f4 zemin. Beyaz üst bant: solda 300px genişlikte 28/32 başlık, sağda 500px görsel; mobilde başlık ve açıklama görselin altında. Bilgi kutuları (ikon 36px, etiket 18/26 siyah, değer 18/26 #4D4D4D; mobilde 220px'lik yana kayan gri kartlar):
+  - Kampanya Tarihi, Tanımlama Süresi, Katılım: HER BİRİ opsiyonel. Değeri olmayan kutu, hiçbiri yoksa bütün satır oluşmuyor.
+  - İkonlar canlının SVG'leri: `public/images/kampanya/`.
+  - Tarih biçimi `01.09.2026 - 30.09.2026` (İstanbul saati, `lib/campaignDate.ts`).
+- Detay sayfasındaki "Kampanya Detay" (lg+) ve "Kampanya Koşulları" kutuları (`CampaignContentBox`): 1280px, `px-10 py-[50px]`, `shadow-md`, başlık 28/34 #333. İçerik 350px'te kesilip 80px'lik beyaz geçişle bitiyor, "Devamını Oku" / "Daha Az Göster" düğmesiyle açılıyor (ok dönüyor); madde işaretleri 20px kalın siyah "•"; linkler #007bff. Detay kutusu zengin gövdeyi, gövde boşsa açıklamayı gösteriyor; içeriği olmayan kutu oluşmuyor.
+- `Campaigns.tsx` (daha önce hiçbir yerde kullanılmıyordu) canlı anasayfa şeridi olarak yeniden yazıldı. Başlık satırı: 40/60, weight 700, "İncele >" linki. Şerit: #eeeeee zemin, 1030px, `py-10`, tek slayt (loop ve autoplay yok, canlıdaki gibi). Görsel 200px, 80px boşluk, başlık 25/32; "Detayları gör" butonu 172px, 2px çerçeve, 8px köşe. 48px beyaz ok butonları, uçta %50 opak ve devre dışı; 8px noktalar, seçili olan kırmızı. Mobil düzen ayrı ("Detaylara git", kaydırma).
+- Pages "Kampanya Grid" bloğu yeni `layout` alanına göre ızgara ya da şerit render ediyor (clover #55); anasayfa bloğu şeride alındı.
+- `Breadcrumb` canlının `widget_General_Breadcrumb`'ına göre yeniden yazıldı (site genelinde): 1300px, `my-5 px-5`, 16/24 siyah, 16px'lik #0D0D0D ok, geçerli sayfa %50 opak; mobilde yalnızca geri oku ve geçerli sayfa. #52-site'ta not edilen 12px'lik kayma bununla kapandı.
+- Kaldırılanlar: `CampaignDate.tsx` ve testi (detay sayfası artık kullanmıyor), kullanılmayan `CalendarIcon`. `kart-onizleme` artık `CampaignCard`'ı kullanıyor.
+- Doğrulama (1440px, `next dev` 3098 + CMS 3099):
+  - Liste: kart 361×325, görsel 321×180, başlıklar ve link canlıyla aynı ölçülerde ve fontta. Yerel veride header'daki test linki nedeniyle 14px aşağıda.
+  - Detay: bilgi kutuları 257/207/133 × 84, x=398/671/894 (canlıyla birebir); kutu başlıkları ve madde işaretleri aynı; Devamını Oku 350px → açılır, "Daha Az Göster" + ok dönüyor (canlıda da öyle).
+  - Anasayfa şeridi: başlık 40/60, butonlar 1116/1180, noktalar 663/679.
+  - Mobil (390px) detay kontrol edildi.
+  - Yerelde test için "Pazarama'da %50 İndirim!" (#13) kampanyasına tarih, tanımlama süresi ("24 Saat"), katılım ("1"), gövde ve 7 maddelik koşul girildi (yerel dev veri).
+- Testler 415/415, tsc/eslint temiz.

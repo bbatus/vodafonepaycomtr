@@ -8,6 +8,8 @@ import { Header } from "@/components/Header";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { Footer } from "@/components/Footer";
 import { CardListGrid, type CardListItem } from "@/components/CardListGrid";
+import { CampaignGrid } from "@/components/CampaignCard";
+import { Campaigns } from "@/components/Campaigns";
 import { BrandLogoGrid } from "@/components/BrandLogoGrid";
 import { CardsWithIcons } from "@/components/CardsWithIcons";
 import { BreadcrumbJsonLd } from "@/components/JsonLd";
@@ -140,16 +142,17 @@ export async function BlockRenderer({ block }: { block: CmsPageBlock }) {
         const campaigns = await getCampaigns();
         filtered = block.category ? campaigns?.filter((c) => c.category?.slug === block.category) : (campaigns ?? undefined);
       }
-      const items: CardListItem[] = (filtered ?? []).map((c) => {
-        const card = campaignToCard(c);
-        return { id: card.id, image: card.image, title: card.title, href: card.href };
-      });
-      // 1030px, not 1280px: every other section on a product page sits on the
-      // live site's own content column, and the wider one made this block
-      // visibly overhang its neighbours.
+      const cards = (filtered ?? []).map(campaignToCard);
+      if (cards.length === 0) return null;
+      // 17.09.2026 live parity: the same block renders either of the live
+      // site's two campaign widgets — the /kampanyalar card grid, or the
+      // homepage band (see Campaigns.tsx / CampaignCard.tsx for the numbers).
+      if (block.layout === "carousel") {
+        return <Campaigns heading={block.heading} campaigns={cards} />;
+      }
       return (
-        <section className="mx-auto w-full max-w-[1030px] px-4 py-16">
-          <CardListGrid title={block.heading} items={items} />
+        <section className="mx-auto w-full max-w-[1280px] px-4 pb-20 subpixel-antialiased">
+          <CampaignGrid first title={block.heading} items={cards} />
         </section>
       );
     }

@@ -9,25 +9,36 @@ const campaigns = [
 ];
 
 describe("Campaigns", () => {
-  it("renders the first campaign by default", () => {
+  // Desktop and mobile bands both render in jsdom, so every title appears twice.
+  it("renders every campaign with the first one active", () => {
     render(<Campaigns campaigns={campaigns} />);
-    expect(screen.getByText("Kampanya A")).toBeInTheDocument();
+    expect(screen.getAllByText("Kampanya A").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Kampanya B").length).toBeGreaterThan(0);
+    expect(screen.getAllByLabelText("Kampanya 1")[0]).toHaveAttribute("aria-current", "true");
   });
 
-  it("advances to the next campaign", async () => {
+  it("shows the heading with an 'İncele' link to /kampanyalar", () => {
+    render(<Campaigns campaigns={campaigns} heading="Kampanyalar" />);
+    expect(screen.getByRole("heading", { name: "Kampanyalar" })).toBeInTheDocument();
+    expect(screen.getByText("İncele").closest("a")).toHaveAttribute("href", "/kampanyalar");
+  });
+
+  it("advances to the next campaign and disables the arrows at the ends (no loop, like live)", async () => {
     const user = userEvent.setup();
     render(<Campaigns campaigns={campaigns} />);
 
+    expect(screen.getByLabelText("Önceki kampanya")).toBeDisabled();
     await user.click(screen.getByLabelText("Sonraki kampanya"));
-    expect(screen.getByText("Kampanya B")).toBeInTheDocument();
+    expect(screen.getAllByLabelText("Kampanya 2")[0]).toHaveAttribute("aria-current", "true");
+    expect(screen.getByLabelText("Sonraki kampanya")).toBeDisabled();
+    expect(screen.getByLabelText("Önceki kampanya")).not.toBeDisabled();
   });
 
-  it("wraps around to the previous campaign from the first", async () => {
+  it("jumps to a campaign from its pagination dot", async () => {
     const user = userEvent.setup();
     render(<Campaigns campaigns={campaigns} />);
-
-    await user.click(screen.getByLabelText("Önceki kampanya"));
-    expect(screen.getByText("Kampanya B")).toBeInTheDocument();
+    await user.click(screen.getAllByLabelText("Kampanya 2")[0]);
+    expect(screen.getAllByLabelText("Kampanya 1")[0]).not.toHaveAttribute("aria-current");
   });
 
   it("renders nothing when given an empty campaign list", () => {

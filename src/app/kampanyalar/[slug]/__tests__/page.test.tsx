@@ -98,33 +98,64 @@ describe("KampanyaDetay", () => {
     expect(screen.getByText("Şart 1")).toBeInTheDocument();
   });
 
-  /**
-   * 02.09.2026 kullanıcı geri bildirimi, canlı siteye göre: "Kampanya
-   * Detay"'dan footer'a kadar olan alan gri bir section wrapper olmalı. That
-   * wrapper (and its "Kampanya Detay" heading) only exists when there is
-   * something to put in it.
-   */
-  it("wraps the body in a 'Kampanya Detay' section inside the gray background wrapper", async () => {
+  it("falls back to the plain description in 'Kampanya Detay' when the rich body is empty", async () => {
+    draftModeMock.mockResolvedValue({ isEnabled: false });
+    vi.mocked(getCampaignBySlug).mockResolvedValue(campaign as never);
+
+    render(await KampanyaDetay({ params: Promise.resolve({ slug: "yaz-kampanyasi" }) }));
+
+    expect(screen.getByText("Kampanya Detay")).toBeInTheDocument();
+    expect(screen.queryByText("Kampanya Koşulları")).not.toBeInTheDocument();
+  });
+
+  it("prefers the rich body over the description", async () => {
     draftModeMock.mockResolvedValue({ isEnabled: false });
     vi.mocked(getCampaignBySlug).mockResolvedValue({
       ...campaign,
       body: { root: { children: [{ type: "paragraph", children: [{ type: "text", text: "Gövde metni" }] }] } },
     } as never);
 
-    const { container } = render(await KampanyaDetay({ params: Promise.resolve({ slug: "yaz-kampanyasi" }) }));
+    render(await KampanyaDetay({ params: Promise.resolve({ slug: "yaz-kampanyasi" }) }));
 
-    expect(screen.getByText("Kampanya Detay")).toBeInTheDocument();
     expect(screen.getByText("Gövde metni")).toBeInTheDocument();
-    expect(container.querySelector(".bg-\\[\\#f4f4f4\\]")).not.toBeNull();
   });
 
-  it("renders no gray wrapper section at all when there is neither a body nor terms", async () => {
+  // 17.09.2026 user request: every info box is optional — no value, no box.
+  it("renders no info boxes when the campaign has no dates, crediting time or participation", async () => {
     draftModeMock.mockResolvedValue({ isEnabled: false });
     vi.mocked(getCampaignBySlug).mockResolvedValue(campaign as never);
 
-    const { container } = render(await KampanyaDetay({ params: Promise.resolve({ slug: "yaz-kampanyasi" }) }));
+    render(await KampanyaDetay({ params: Promise.resolve({ slug: "yaz-kampanyasi" }) }));
 
-    expect(screen.queryByText("Kampanya Detay")).not.toBeInTheDocument();
-    expect(container.querySelector(".bg-\\[\\#f4f4f4\\]")).toBeNull();
+    expect(screen.queryByText("Kampanya Tarihi")).not.toBeInTheDocument();
+    expect(screen.queryByText("Tanımlama Süresi")).not.toBeInTheDocument();
+    expect(screen.queryByText("Katılım")).not.toBeInTheDocument();
+  });
+
+  it("renders only the info boxes that have a value, in the live format", async () => {
+    draftModeMock.mockResolvedValue({ isEnabled: false });
+    vi.mocked(getCampaignBySlug).mockResolvedValue({
+      ...campaign,
+      startDate: "2026-08-31T21:00:00.000Z",
+      endDate: "2026-09-29T21:00:00.000Z",
+      assignmentPeriod: "24 Saat",
+    } as never);
+
+    render(await KampanyaDetay({ params: Promise.resolve({ slug: "yaz-kampanyasi" }) }));
+
+    expect(screen.getByText("Kampanya Tarihi")).toBeInTheDocument();
+    expect(screen.getByText("01.09.2026 - 30.09.2026")).toBeInTheDocument();
+    expect(screen.getByText("Tanımlama Süresi")).toBeInTheDocument();
+    expect(screen.getByText("24 Saat")).toBeInTheDocument();
+    expect(screen.queryByText("Katılım")).not.toBeInTheDocument();
+  });
+
+  it("has no breadcrumb (the live campaign page has none)", async () => {
+    draftModeMock.mockResolvedValue({ isEnabled: false });
+    vi.mocked(getCampaignBySlug).mockResolvedValue(campaign as never);
+
+    render(await KampanyaDetay({ params: Promise.resolve({ slug: "yaz-kampanyasi" }) }));
+
+    expect(screen.queryByRole("navigation", { name: "breadcrumb" })).not.toBeInTheDocument();
   });
 });

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import { AppDownloadBanner } from "@/components/AppDownloadBanner";
 import { Header } from "@/components/Header";
 import { Breadcrumb } from "@/components/Breadcrumb";
@@ -8,7 +8,12 @@ import { Faq } from "@/components/Faq";
 import { Footer } from "@/components/Footer";
 import { getCampaigns, getCategories, getFaqItems, getPageMeta, getTranslation } from "@/lib/cms";
 import type { FaqItem } from "@/types/homepage";
-import { CampaignsFilterableList, type FilterableCampaign } from "./CampaignsFilterableList";
+import {
+  CampaignsFilterableList,
+  CampaignsFilterableListFallback,
+  CampaignsHeader,
+  type FilterableCampaign,
+} from "./CampaignsFilterableList";
 import { buildMetadata } from "@/lib/metadata";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -45,8 +50,9 @@ export default async function Kampanyalar() {
   const campaigns: FilterableCampaign[] = (cmsCampaigns ?? []).map((c) => ({
     id: c.id,
     image: c.image.url,
+    imageAlt: c.image.alt || c.title,
     title: c.title,
-    href: c.ctaUrl || (c.slug ? `/kampanyalar/${c.slug}` : undefined),
+    href: c.ctaUrl || (c.slug ? `/kampanyalar/${c.slug}` : "/kampanyalar"),
     category: c.category?.slug,
     linkLabel: c.ctaLabel,
     featured: c.featured,
@@ -56,12 +62,24 @@ export default async function Kampanyalar() {
   const pageMeta = await getPageMeta("/kampanyalar");
 
   let content: ReactNode;
-  if (cmsCampaigns === null) {
-    content = <ContentUnavailable variant="error" />;
-  } else if (campaigns.length === 0) {
-    content = <ContentUnavailable variant="empty" />;
+  if (cmsCampaigns === null || campaigns.length === 0) {
+    content = (
+      <>
+        <CampaignsHeader />
+        <section className="mx-auto w-full max-w-[1280px] px-4 pb-20">
+          <ContentUnavailable variant={cmsCampaigns === null ? "error" : "empty"} />
+        </section>
+      </>
+    );
   } else {
-    content = <CampaignsFilterableList campaigns={campaigns} categories={categories ?? []} allLabel={allLabel} />;
+    const listProps = { campaigns, categories: categories ?? [], allLabel };
+    // useSearchParams (?kategori=) needs a Suspense boundary to keep the page
+    // statically renderable; the fallback is the same list under "Tümü".
+    content = (
+      <Suspense fallback={<CampaignsFilterableListFallback {...listProps} />}>
+        <CampaignsFilterableList {...listProps} />
+      </Suspense>
+    );
   }
 
   return (
@@ -70,13 +88,7 @@ export default async function Kampanyalar() {
       <Header />
       <Breadcrumb current={pageMeta?.breadcrumbLabel || "Kampanyalar"} />
 
-      <section className="mx-auto w-full max-w-[1280px] px-4 pb-20">
-        <div className="flex flex-col items-center justify-center lg:pt-8">
-          <h1 className="text-center text-[40px] font-light leading-[48px] text-black">Kampanyalar</h1>
-        </div>
-
-        {content}
-      </section>
+      {content}
 
       <Faq items={faqs} />
       <Footer />
