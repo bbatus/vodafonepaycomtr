@@ -124,3 +124,34 @@ Kullanıcı: "Kampanyaları da ücretler/SSS gibi eşitleyelim; detayda Kampanya
   - Mobil (390px) detay kontrol edildi.
   - Yerelde test için "Pazarama'da %50 İndirim!" (#13) kampanyasına tarih, tanımlama süresi ("24 Saat"), katılım ("1"), gövde ve 7 maddelik koşul girildi (yerel dev veri).
 - Testler 415/415, tsc/eslint temiz.
+
+## 56-site. Blog: liste, yazı detayı ve "Daha fazlasını keşfedin" canlıyla birebir (17.09.2026)
+
+Kullanıcı: "Blogları da kampanyalar gibi eşitleyelim; tarih, tablo, başlık fontları, görsel yeri, en alttaki 'Daha fazlasını keşfedin'; ekstra alanlar opsiyonel olsun." Canlıda iki widget: `Blogs` (/blog) ve `Blog` (örn. /blog/ulasim-karti-bakiye-yukleme-yollari-vodafone-pay). Lazy-load sonrası computed stiller, CSSOM kuralları ve filtre davranışı ölçüldü.
+- `BlogCard.tsx` (yeni):
+  - Çerçeve kampanya kartıyla aynı (361px, 6px, shadow-md, p-5, 321×180 contain).
+  - Kartlar hücrede ortalı (`mx-auto`); başlık VodafoneBold 20/28, `h-14 line-clamp-1` flow-root kutusunda (canlıdaki kırpma).
+  - Liste kartlarında tek satırlık özet: sistem fontu 16px #666, ortalı, `mb-6`, üç noktayla kesiliyor. Paragrafın 8px üst boşluğu ve 21.28px satır yüksekliği canlıdakiyle aynı.
+  - `BlogGrid`: list (`lg:ml-8`) ve related (offset yok) varyantları.
+- `CategoryPills.tsx` (yeni): /kampanyalar ve /blog'un birebir aynı olan kategori butonları tek bileşende; `?kategori=` URL'si. `CampaignsFilterableList` da buna geçti.
+- /blog: breadcrumb yok (canlıda da yok). `lg:pt-64px`, VodafoneLight 40/48 "Blog". "Tüm Bloglar", kategori seçilince "<Kategori> blogları". Suspense fallback eklendi.
+- Blog yazısı detay sayfası baştan yazıldı:
+  - Kendi breadcrumb'ı: "Vodafone Pay Bloglar" → /blog, VodafoneLight, `py-3` (`Breadcrumb` yeni `root` / `variant="blog"` prop'ları).
+  - Üst bölüm: solda 300px, VodafoneLight 28/32 başlık; sol sütunun sağ alt köşesinde tarih etiketi (120×40, 45° #820000→#E60000 degrade, beyaz VodafoneRegular 16px); sağda 450px kapak görseli. Mobilde başlık ve tarih görselin altında.
+  - **Tarih opsiyonel:** `publishedDate` yoksa etiket hiç oluşmuyor.
+- Gövde, canlı şablonun `.textarea-content` kurallarıyla:
+  - p: Light 16/20, `mb-4`; h1–h3: Light 28/32 (mobilde 20/24).
+  - Madde işareti: 20px kalın kırmızı "•", maddeler VodafoneRegular 16/24.
+  - Linkler #1f6feb, altı çizili değil.
+  - Tablo: #D9D9D9 çizgili, 9.33/6.67px dolgu, kırmızı başlık satırında beyaz yazı (Light face'in kalınlaştırılmışı), satırlar sırayla #FCE4E4, doğal genişlik, köşesiz. Sadece blog gövdesine uygulanıyor, genel tablo stili değişmedi.
+  - Yazılardaki Word'den yapıştırılmış satır içi stiller kopyalanmadı.
+- "Daha fazlasını keşfedin": `max-w-[1280px] px-4 py-10 lg:py-16`, özetsiz 3 kart.
+  - Seçim: editör `relatedPosts` seçtiyse onlar; seçmediyse aynı kategoriden, yetmezse en yeni yazılardan (kendisi hariç).
+  - Gösterilecek yazı yoksa bölüm oluşmuyor.
+  - Detay isteği bunun için `depth=2`.
+- Pages "Blog Grid" bloğu da `BlogGrid`'e geçti. `CardListGrid` artık kullanılmadığı için testiyle birlikte silindi.
+- Doğrulama (1440px, `next dev` 3098 + CMS 3099):
+  - Liste: kart 361×378, özet 29px, başlık 56px, link 18/26 canlıyla aynı.
+  - Detay: breadcrumb 1300px, `py-3`; tarih etiketi sol sütunun sağ altında; gövde üst bölümden 80px sonra başlıyor; tablo hücreleri, madde işaretleri ve linkler aynı; "Daha fazlasını keşfedin" kartları 361×325, grid konumu aynı.
+  - Test verisi: yerel "Ulaşım Kartı Bakiye Yükleme Yolları" (#3) yazısına 23.07.2026 tarihi, 2 başlık, 5 satırlık tablo, 3 maddelik liste ve link girildi (yerel dev veri).
+- Testler 413/413, tsc ve eslint temiz.

@@ -46,7 +46,7 @@ export default async function Kampanyalar() {
   // pre-split arrays — see CampaignsFilterableList for why the split had to
   // move out of here.
   // 02.09.2026: no description or dates — the live site's campaign cards are
-  // just image + title + "Detayları gör" (see CardListGrid's removal note).
+  // just image + title + "Detayları gör" (see CampaignCard.tsx).
   const campaigns: FilterableCampaign[] = (cmsCampaigns ?? []).map((c) => ({
     id: c.id,
     image: c.image.url,

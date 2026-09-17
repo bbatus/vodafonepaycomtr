@@ -7,8 +7,8 @@ import { AppDownloadBanner } from "@/components/AppDownloadBanner";
 import { Header } from "@/components/Header";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { Footer } from "@/components/Footer";
-import { CardListGrid, type CardListItem } from "@/components/CardListGrid";
 import { CampaignGrid } from "@/components/CampaignCard";
+import { BlogGrid, type BlogCardItem } from "@/components/BlogCard";
 import { Campaigns } from "@/components/Campaigns";
 import { BrandLogoGrid } from "@/components/BrandLogoGrid";
 import { CardsWithIcons } from "@/components/CardsWithIcons";
@@ -270,16 +270,20 @@ export async function BlockRenderer({ block }: { block: CmsPageBlock }) {
     case "blogGrid": {
       const posts = await getBlogPosts();
       const filtered = block.category ? posts?.filter((p) => p.category?.slug === block.category) : posts;
-      const items: CardListItem[] = (filtered ?? []).map((p) => ({
+      const items: BlogCardItem[] = (filtered ?? []).map((p) => ({
         id: p.id,
         image: p.coverImage.url,
+        imageAlt: p.coverImage.alt || p.title,
         title: p.title,
-        description: richTextToPlainText(p.body, 120),
+        excerpt: richTextToPlainText(p.body, 140),
         href: `/blog/${p.slug}`,
+        linkLabel: p.ctaLabel,
       }));
+      if (items.length === 0) return null;
+      // 17.09.2026: same cards and grid as /blog (live `widget_Blogs`).
       return (
-        <section className="mx-auto w-full max-w-[1030px] px-4 py-16">
-          <CardListGrid title={block.heading} items={items} />
+        <section className="mx-auto w-full max-w-[1280px] px-4 pb-20 subpixel-antialiased lg:px-0">
+          <BlogGrid title={block.heading} items={items} />
         </section>
       );
     }

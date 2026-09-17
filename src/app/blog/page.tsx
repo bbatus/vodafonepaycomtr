@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import { AppDownloadBanner } from "@/components/AppDownloadBanner";
 import { Header } from "@/components/Header";
-import type { CardListItem } from "@/components/CardListGrid";
+import type { BlogCardItem } from "@/components/BlogCard";
 import { ContentUnavailable } from "@/components/ContentUnavailable";
 import { Footer } from "@/components/Footer";
 import { getBlogPosts, getCategories, getTranslation, richTextToPlainText } from "@/lib/cms";
 import type { FilterTabCategory } from "@/components/FilterTabs";
-import { BlogFilterableList } from "./BlogFilterableList";
+import { BlogFilterableList, BlogFilterableListFallback, BlogHeader } from "./BlogFilterableList";
 import { buildMetadata } from "@/lib/metadata";
 
 export const metadata: Metadata = buildMetadata({
@@ -27,11 +27,12 @@ export default async function Blog() {
     getCategories("blog"),
     getTranslation("filterTabs.all", "Tümü"),
   ]);
-  const posts: CardListItem[] = (cmsPosts ?? []).map((p) => ({
+  const posts: BlogCardItem[] = (cmsPosts ?? []).map((p) => ({
     id: p.id,
     image: p.coverImage.url,
+    imageAlt: p.coverImage.alt || p.title,
     title: p.title,
-    description: richTextToPlainText(p.body, 140),
+    excerpt: richTextToPlainText(p.body, 140),
     href: `/blog/${p.slug}`,
     category: p.category?.slug,
     linkLabel: p.ctaLabel,
@@ -44,27 +45,31 @@ export default async function Blog() {
   const categories: FilterTabCategory[] = (cmsCategories ?? []).map((c) => ({ label: c.label, slug: c.slug }));
 
   let content: ReactNode;
-  if (cmsPosts === null) {
-    content = <ContentUnavailable variant="error" />;
-  } else if (posts.length === 0) {
-    content = <ContentUnavailable variant="empty" />;
+  if (cmsPosts === null || posts.length === 0) {
+    content = (
+      <>
+        <BlogHeader />
+        <section className="mx-auto w-full max-w-[1280px] px-4 pb-20">
+          <ContentUnavailable variant={cmsPosts === null ? "error" : "empty"} />
+        </section>
+      </>
+    );
   } else {
-    content = <BlogFilterableList posts={posts} categories={categories} allLabel={allLabel} />;
+    const listProps = { posts, categories, allLabel };
+    // useSearchParams (?kategori=) needs a Suspense boundary to keep the page
+    // statically renderable; the fallback is the same list under "Tümü".
+    content = (
+      <Suspense fallback={<BlogFilterableListFallback {...listProps} />}>
+        <BlogFilterableList {...listProps} />
+      </Suspense>
+    );
   }
 
   return (
     <main className="flex min-h-screen flex-col">
       <AppDownloadBanner />
       <Header />
-
-      <section className="mx-auto w-full max-w-[1280px] px-4 pb-20">
-        <div className="flex flex-col items-center justify-center lg:pt-8">
-          <h1 className="text-center text-[40px] font-light leading-[48px] text-black">Blog</h1>
-        </div>
-
-        {content}
-      </section>
-
+      {content}
       <Footer />
     </main>
   );

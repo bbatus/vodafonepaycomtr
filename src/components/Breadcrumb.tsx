@@ -23,13 +23,36 @@ function Chevron() {
   );
 }
 
-export function Breadcrumb({ current, trail }: { current: string; trail?: { label: string; href: string }[] }) {
+/**
+ * `root` replaces the leading "Ana Sayfa" crumb (and the mobile back arrow's
+ * target). `variant="blog"` is the live blog post's own copy of this widget:
+ * `widget_Blog` renders its breadcrumb in VodafoneLight with `py-3` instead
+ * of the general widget's VodafoneRegular and `my-5`, rooted at
+ * "Vodafone Pay Bloglar" → /blog.
+ */
+export function Breadcrumb({
+  current,
+  trail,
+  root = { label: "Ana Sayfa", href: "/" },
+  variant = "default",
+}: {
+  current: string;
+  trail?: { label: string; href: string }[];
+  root?: { label: string; href: string };
+  variant?: "default" | "blog";
+}) {
   return (
-    <div className="mx-auto my-5 w-full max-w-[1300px] px-5 font-sans text-base leading-6 text-black subpixel-antialiased">
+    <div
+      className={
+        variant === "blog"
+          ? "mx-auto w-full max-w-[1300px] px-5 py-3 font-light text-base leading-6 text-black subpixel-antialiased"
+          : "mx-auto my-5 w-full max-w-[1300px] px-5 font-sans text-base leading-6 text-black subpixel-antialiased"
+      }
+    >
       <nav aria-label="breadcrumb">
         <ol className="flex items-center gap-x-4">
           <li className="md:hidden">
-            <Link href="/" aria-label="Ana Sayfa" className="inline-flex items-center justify-center p-2">
+            <Link href={root.href} aria-label={root.label} className="inline-flex items-center justify-center p-2">
               <svg width={15} height={12} viewBox="0 0 15 12" fill="none" aria-hidden="true">
                 <path
                   d="M0 5.86322C0 6.03272 0.0738373 6.19433 0.20224 6.30485L6.32772 11.5845C6.43801 11.6797 6.57361 11.7263 6.70828 11.7263C6.87245 11.7263 7.03521 11.6574 7.15038 11.5236C7.36075 11.2796 7.33312 10.9109 7.08954 10.701L2.15359 6.44626L13.8663 6.44626C14.1883 6.44626 14.45 6.18504 14.45 5.86299C14.45 5.54094 14.1883 5.27972 13.8663 5.27972L2.15405 5.27972L7.08954 1.02549C7.33312 0.815583 7.36075 0.44686 7.15038 0.202825C6.94048 -0.040745 6.57129 -0.0697689 6.32772 0.141991L0.20224 5.42136C0.0738373 5.53212 0 5.69349 0 5.86322Z"
@@ -39,7 +62,7 @@ export function Breadcrumb({ current, trail }: { current: string; trail?: { labe
             </Link>
           </li>
           <li className="hidden md:block">
-            <Link href="/">Ana Sayfa</Link>
+            <Link href={root.href}>{root.label}</Link>
           </li>
           <Chevron />
           {(trail ?? []).map((crumb) => (

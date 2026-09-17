@@ -403,6 +403,13 @@ const blogPostDetailSchema = z.object({
   // rendering a record's creation timestamp as a publication date would be
   // inventing information.
   createdAt: nullableString(),
+  // 17.09.2026: editor-picked "Daha fazlasını keşfedin" posts (max 3). Needs
+  // depth=2 so each picked post's own coverImage/category are populated;
+  // an unpopulated id (deleted post, depth cut) is dropped rather than failing.
+  relatedPosts: z
+    .array(z.union([blogPostSchema, z.union([z.string(), z.number()])]))
+    .nullish()
+    .transform((v) => (v ?? []).filter((p): p is CmsBlogPost => typeof p === "object")),
   seoTitle: nullableString(),
   seoDescription: nullableString(),
   seoKeywords: nullableString(),
@@ -414,7 +421,7 @@ export type CmsBlogPostDetail = z.infer<typeof blogPostDetailSchema>;
 
 export async function getBlogPostBySlug(slug: string): Promise<CmsBlogPostDetail | null> {
   const data = await cmsFetch(
-    `/blog-posts?depth=1&limit=1&where[slug][equals]=${encodeURIComponent(slug)}`,
+    `/blog-posts?depth=2&limit=1&where[slug][equals]=${encodeURIComponent(slug)}`,
     "blog-posts",
     listResponseSchema(blogPostDetailSchema)
   );
