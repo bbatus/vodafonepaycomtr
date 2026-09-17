@@ -78,3 +78,14 @@ Tam plan, kararlar, DB göçleri ve bulgular: `clover/tasks.md` #49.
 - [x] Canlı (`next dev`): bayrak taşınınca `/` ve yönlendirmeler bayrağı
       takip etti, geri alınınca eski hali.
 - [ ] Docker imajıyla doğrulanmadı — Docker Desktop'ta çekme asılı (bkz. clover #49).
+
+## 52-site. /ucretler-ve-limitler canlıyla birebir (17.09.2026)
+
+Kullanıcı: "tıpatıp aynı olmalı". Canlı sayfa (1440px) ile bizimki yan yana çekildi. Canlının CSS kuralları, sayfanın kendi CSSOM'undan kural kural okundu; hesaplanan stiller ve `document.fonts` de karşılaştırıldı.
+- `PricesAndLimits.tsx` baştan yazıldı: gri bant (#f2f2f2, 20px), sekmelerin beyaz kapsayıcısı (300px, köşe 8px/6px), 1028px sabit tablo, 104px satırlar ve aralarında #e5e5e5 çizgi, hücre dolgusu 32/40px, 16px köşeler. Canlıdaki `tr:nth-child(7)` 260px tuhaflığı da bilerek kopyalandı. Limitlerde başlıklar 28/34px, altlarında 24px boşluk. ≤1028 / ≤768 / ≤480px kırılımları da canlıyla aynı.
+- Yeni içerik türleri: ara başlık satırı, yeşil değer, çok satırlı değer, tablonun altında linkli not, limit tablosu dipnotu (clover #52).
+- Sayfada görünür H1 yok (canlıda da yok); H1 artık `sr-only`.
+- Font bulguları: canlı sitede `VodafoneBold` için hiç @font-face tanımı yok, bu yüzden tablonun ilk sütunu sistemin genel kalın sans-serif fontuyla (Mac'te Helvetica) görünüyor. Birebirlik için aynısı yapıldı (`LABEL_FONT`). Vodafone Bold'a çevirmek tek sınıf değişikliği — kullanıcıya soruldu. Ayrıca kök layout'taki `antialiased` Mac'te yazıyı inceltiyordu; bu bölümde `subpixel-antialiased` ile canlının davranışına dönüldü. Font dosyaları canlıdakilerle aynı (hash eşit).
+- Kopyalanmayanlar: canlı hücrelerdeki satır içi `Calibri` span'leri (Word'den yapıştırma kalıntısı).
+- Kapsam dışı kalan, site genelindeki farklar: header, breadcrumb (canlıda 1300px genişlik ve 20px margin, bizde 1030px; bant bu yüzden 12px yukarıda başlıyor), footer tasarımı.
+- Doğrulama: `next dev` 3098 (CMS 3099) + headless Chrome; ölçüler canlıyla aynı (sekmeler 300×56 / 142×48, tablo 1028px genişlik, satırlar 104px, 7. satır 260px, hücre fontları ve renkleri eşit). tsc/eslint temiz, testler 401/401. Mobil kırılımlar CSS kuralı düzeyinde eşlendi ama ekran görüntüsüyle karşılaştırılmadı.

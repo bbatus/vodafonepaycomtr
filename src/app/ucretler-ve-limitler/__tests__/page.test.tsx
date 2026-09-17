@@ -32,7 +32,7 @@ describe("UcretlerVeLimitler", () => {
   });
 
   it("renders the fee/limit tables when data exists", async () => {
-    vi.mocked(getFeeRows).mockResolvedValue([{ id: "1", label: "Aidat", value: "10 TL", order: 0 }] as never);
+    vi.mocked(getFeeRows).mockResolvedValue([{ id: "1", rowType: "fee", label: "Aidat", value: "10 TL", highlightValue: false, order: 0 }] as never);
     vi.mocked(getLimitTables).mockResolvedValue(null);
     vi.mocked(getPageMeta).mockResolvedValue(null);
 

@@ -415,10 +415,19 @@ export async function getBlogPostBySlug(slug: string): Promise<CmsBlogPostDetail
   return data?.docs?.[0] ?? null;
 }
 
+/**
+ * 17.09.2026: `rowType` splits the fee table into the three things the live
+ * page's hand-written table mixes together — plain fee rows, big bold
+ * in-table section headings, and a linked note below the table. Rows saved
+ * before the field existed come back without it and are plain fee rows.
+ */
 const feeRowSchema = z.object({
   id: z.union([z.string(), z.number()]).transform(String),
-  label: z.string(),
-  value: z.string(),
+  rowType: z.enum(["fee", "heading", "note"]).nullish().transform((v) => v ?? "fee"),
+  label: z.string().nullish().transform((v) => v ?? ""),
+  value: z.string().nullish().transform((v) => v ?? ""),
+  highlightValue: z.boolean().nullish().transform(Boolean),
+  note: z.unknown().optional(),
   order: z.number(),
 });
 export type CmsFeeRow = z.infer<typeof feeRowSchema>;
@@ -432,6 +441,7 @@ const limitTableSchema = z.object({
   id: z.union([z.string(), z.number()]).transform(String),
   title: z.string(),
   order: z.number(),
+  footnote: z.string().nullish().transform((v) => v ?? ""),
   rows: z.array(
     z.object({
       category: z.string(),

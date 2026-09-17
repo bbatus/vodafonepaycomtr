@@ -328,7 +328,8 @@ describe("cms.ts fetch-backed getters", () => {
   it("getFeeRows returns docs on success", async () => {
     const doc = { id: "f1", label: "L", value: "V", order: 0 };
     vi.mocked(fetch).mockImplementation(() => okJson({ docs: [doc] }));
-    expect(await getFeeRows()).toEqual([doc]);
+    // Rows saved before rowType/highlightValue existed come back as plain fee rows.
+    expect(await getFeeRows()).toEqual([{ ...doc, rowType: "fee", highlightValue: false }]);
   });
 
   it("getLimitTables returns docs on success", async () => {
@@ -339,7 +340,7 @@ describe("cms.ts fetch-backed getters", () => {
       rows: [{ category: "Kart", period: "Günlük", unverifiedLimit: "1", verifiedLimit: "2" }],
     };
     vi.mocked(fetch).mockImplementation(() => okJson({ docs: [doc] }));
-    expect(await getLimitTables()).toEqual([doc]);
+    expect(await getLimitTables()).toEqual([{ ...doc, footnote: "" }]);
   });
 
   it("getNavLinks returns docs on success", async () => {

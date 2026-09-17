@@ -258,15 +258,7 @@ export async function BlockRenderer({ block }: { block: CmsPageBlock }) {
       const [feeRows, limitTables] = await Promise.all([getFeeRows(), getLimitTables()]);
       if (!feeRows?.length && !limitTables?.length) return null;
       return (
-        <PricesAndLimits
-          feeRows={(feeRows ?? []).map((r) => [r.label, r.value] as [string, string])}
-          limitTables={(limitTables ?? []).map((t) => ({
-            title: t.title,
-            rows: t.rows.map(
-              (r) => [r.category, r.period, r.unverifiedLimit, r.verifiedLimit] as [string, string, string, string]
-            ),
-          }))}
-        />
+        <PricesAndLimits feeRows={feeRows ?? []} limitTables={limitTables ?? []} />
       );
     }
 

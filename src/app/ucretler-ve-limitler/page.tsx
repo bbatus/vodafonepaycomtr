@@ -26,11 +26,8 @@ export default async function UcretlerVeLimitler() {
   // No hardcoded fallback numbers any more (see PricesAndLimits.tsx).
   const [cmsFeeRows, cmsLimitTables] = await Promise.all([getFeeRows(), getLimitTables()]);
 
-  const feeRows: [string, string][] = (cmsFeeRows ?? []).map((r) => [r.label, r.value]);
-  const limitTables = (cmsLimitTables ?? []).map((t) => ({
-    title: t.title,
-    rows: t.rows.map((r): [string, string, string, string] => [r.category, r.period, r.unverifiedLimit, r.verifiedLimit]),
-  }));
+  const feeRows = cmsFeeRows ?? [];
+  const limitTables = cmsLimitTables ?? [];
 
   const pageMeta = await getPageMeta("/ucretler-ve-limitler");
 
@@ -48,9 +45,10 @@ export default async function UcretlerVeLimitler() {
       <AppDownloadBanner />
       <Header />
       <Breadcrumb current={pageMeta?.breadcrumbLabel || "Ücretler ve Limitler"} />
-      <h1 className="mx-auto max-w-[1030px] px-4 pt-2 text-center text-[40px] font-light leading-[48px] text-black">
-        Ücretler ve Limitler
-      </h1>
+      {/* 17.09.2026: the live page shows no visible title here — the grey
+          fees band starts right under the breadcrumb. Kept for screen readers
+          and SEO, hidden visually. */}
+      <h1 className="sr-only">Ücretler ve Limitler</h1>
       {content}
       <Footer />
     </main>
