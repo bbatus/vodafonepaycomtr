@@ -1,6 +1,5 @@
 import type { MetadataRoute } from "next";
 import { getBlogPosts, getCampaigns, getPages, getRepresentatives } from "@/lib/cms";
-import { HOMEPAGE_SLUG } from "@/lib/homepage";
 
 const SITE_URL = process.env.SITE_URL || "http://localhost:3000";
 
@@ -65,10 +64,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   // The homepage document is served at `/` (already in STATIC_ROUTES as ""),
-  // and `/anasayfa` 308-redirects there — listing it would advertise a URL
+  // and its own slug 308-redirects there — listing it would advertise a URL
   // that only bounces.
   const editorPageEntries: MetadataRoute.Sitemap = (pages ?? [])
-    .filter((p) => p.slug !== HOMEPAGE_SLUG)
+    .filter((p) => !p.isHomepage)
     .map((p) => ({ url: `${SITE_URL}/${p.slug}` }));
 
   const all = [...staticEntries, ...campaignEntries, ...blogEntries, ...representativeEntries, ...editorPageEntries];

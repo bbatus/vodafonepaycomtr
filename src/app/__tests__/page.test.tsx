@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import Home from "@/app/page";
-import { getPageBySlug, getPageMeta } from "@/lib/cms";
+import { getHomepage, getPageMeta } from "@/lib/cms";
 
 vi.mock("@/lib/cms", async () => {
   const actual = await vi.importActual<typeof import("@/lib/cms")>("@/lib/cms");
@@ -11,7 +11,7 @@ vi.mock("@/lib/cms", async () => {
     getFaqItems: vi.fn(),
     getPageMeta: vi.fn(),
     getNavLinks: vi.fn(),
-    getPageBySlug: vi.fn(),
+    getHomepage: vi.fn(),
   };
 });
 vi.mock("@/components/Header", () => ({ Header: () => <header>Header</header> }));
@@ -39,15 +39,15 @@ const heroBlock = {
 };
 
 /**
- * `/` renders the `anasayfa` Pages document and nothing else. The hardcoded
+ * `/` renders the Pages document flagged as the homepage and nothing else. The hardcoded
  * Hero/Campaigns/Faq composition these tests used to exercise was removed on
  * 02.09.2026 — see src/app/page.tsx for why a homepage that silently swaps
  * itself for a different one is worse than a homepage that fails.
  */
 describe("Home", () => {
-  it("renders the blocks of the anasayfa Pages document", async () => {
+  it("renders the blocks of the page flagged as the homepage", async () => {
     vi.mocked(getPageMeta).mockResolvedValue(null);
-    vi.mocked(getPageBySlug).mockResolvedValue({ title: "Anasayfa", slug: "anasayfa", layout: [heroBlock] } as never);
+    vi.mocked(getHomepage).mockResolvedValue({ title: "Anasayfa", slug: "anasayfa", layout: [heroBlock] } as never);
 
     render(await Home());
 
@@ -56,25 +56,27 @@ describe("Home", () => {
     expect(screen.getByText("block:hero")).toBeInTheDocument();
   });
 
-  it("reads the homepage from the 'anasayfa' slug", async () => {
+  it("reads the homepage by its flag, not by a slug", async () => {
     vi.mocked(getPageMeta).mockResolvedValue(null);
-    vi.mocked(getPageBySlug).mockResolvedValue({ title: "Anasayfa", slug: "anasayfa", layout: [heroBlock] } as never);
+    vi.mocked(getHomepage).mockResolvedValue({ title: "Vodafone Pay Ana Sayfa", slug: "vodafone-pay-ana-sayfa", layout: [heroBlock], isHomepage: true } as never);
 
-    await Home();
+    render(await Home());
 
-    expect(vi.mocked(getPageBySlug).mock.calls.at(-1)?.[0]).toBe("anasayfa");
+    // A title that doesn't slugify to "anasayfa" must still be the homepage.
+    expect(getHomepage).toHaveBeenCalled();
+    expect(screen.getByText("block:hero")).toBeInTheDocument();
   });
 
   it("404s instead of substituting a hardcoded homepage when the document is missing", async () => {
     vi.mocked(getPageMeta).mockResolvedValue(null);
-    vi.mocked(getPageBySlug).mockResolvedValue(null);
+    vi.mocked(getHomepage).mockResolvedValue(null);
 
     await expect(Home()).rejects.toThrow("NEXT_NOT_FOUND");
   });
 
   it("404s when the document exists but has no blocks", async () => {
     vi.mocked(getPageMeta).mockResolvedValue(null);
-    vi.mocked(getPageBySlug).mockResolvedValue({ title: "Anasayfa", slug: "anasayfa", layout: [] } as never);
+    vi.mocked(getHomepage).mockResolvedValue({ title: "Anasayfa", slug: "anasayfa", layout: [] } as never);
 
     await expect(Home()).rejects.toThrow("NEXT_NOT_FOUND");
   });

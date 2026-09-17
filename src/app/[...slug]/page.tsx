@@ -42,7 +42,6 @@ import {
   type CmsPageBlock,
 } from "@/lib/cms";
 import { buildMetadata } from "@/lib/metadata";
-import { HOMEPAGE_SLUG } from "@/lib/homepage";
 import { RichText } from "@/components/RichText";
 
 /**
@@ -55,7 +54,7 @@ export async function generateStaticParams() {
   // The homepage document is served at `/` by src/app/page.tsx — prerendering
   // it here as well would build the very duplicate URL this route redirects.
   return (pages ?? [])
-    .filter((p) => p.slug !== HOMEPAGE_SLUG)
+    .filter((p) => !p.isHomepage)
     .map((p) => ({ slug: p.slug.split("/").filter(Boolean) }));
 }
 
@@ -474,15 +473,16 @@ export async function BlockRenderer({ block }: { block: CmsPageBlock }) {
 
 export default async function EditorPage({ params }: { params: Promise<{ slug: string[] }> }) {
   const { slug } = await params;
-  // 02.09.2026: the homepage document has to carry a slug like any other Page,
-  // but its address is `/`. Without this, the exact same content answered at
-  // BOTH `/` and `/anasayfa` — two URLs, one page, which is a duplicate for
-  // search engines and a puzzle for the editor who only ever created one page.
-  // 308 rather than 404 so anything already linking to /anasayfa still lands.
-  if (slug.join("/") === HOMEPAGE_SLUG) permanentRedirect("/");
-
   const page = await getPageBySlug(slug.join("/"));
   if (!page) notFound();
+  // The homepage document still carries an ordinary slug (derived from its
+  // title), but its address is `/`. Serving it here as well would put the
+  // same content at two URLs — a duplicate for search engines and a puzzle
+  // for the editor who only ever created one page. 308 rather than 404 so
+  // anything already linking to the old address still lands. Decided by the
+  // page's own "Bu Sayfa Anasayfa Olsun" flag since 16.09.2026, not by a
+  // hardcoded slug.
+  if (page.isHomepage) permanentRedirect("/");
 
   return (
     <main className="flex min-h-screen flex-col">

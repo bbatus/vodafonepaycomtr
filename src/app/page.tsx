@@ -3,8 +3,7 @@ import { notFound } from "next/navigation";
 import { AppDownloadBanner } from "@/components/AppDownloadBanner";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { getPageBySlug, getPageMeta } from "@/lib/cms";
-import { HOMEPAGE_SLUG } from "@/lib/homepage";
+import { getHomepage, getPageMeta } from "@/lib/cms";
 import { BlockRenderer } from "@/app/[...slug]/page";
 import { buildMetadata } from "@/lib/metadata";
 
@@ -44,7 +43,9 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /**
- * `/` renders the `anasayfa` Pages document and nothing else.
+ * `/` renders the Pages document marked "Bu Sayfa Anasayfa Olsun" and nothing
+ * else (16.09.2026: it used to look the document up by the magic slug
+ * `anasayfa`, see `getHomepage` for why that was fragile).
  *
  * There used to be a hardcoded composition (Hero + Campaigns + Faq) behind
  * this as a "the CMS might be down" safety net. It was removed on the user's
@@ -57,7 +58,7 @@ export async function generateMetadata(): Promise<Metadata> {
  * first), so the document has to be read here explicitly.
  */
 export default async function Home() {
-  const cmsHomepage = await getPageBySlug(HOMEPAGE_SLUG);
+  const cmsHomepage = await getHomepage();
   if (!cmsHomepage || cmsHomepage.layout.length === 0) notFound();
 
   return (

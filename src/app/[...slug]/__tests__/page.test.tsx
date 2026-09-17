@@ -43,20 +43,34 @@ describe("generateStaticParams", () => {
    */
   it("skips the homepage document", async () => {
     vi.mocked(getPages).mockResolvedValue([
-      { id: "1", title: "Anasayfa", slug: "anasayfa", layout: [], seoTitle: undefined, seoDescription: undefined, seoKeywords: undefined, ogImage: undefined, parent: undefined },
-      { id: "2", title: "T", slug: "aninda-bakiye", layout: [], seoTitle: undefined, seoDescription: undefined, seoKeywords: undefined, ogImage: undefined, parent: undefined },
+      // Flagged homepage whose slug is NOT "anasayfa" — the flag decides, not the slug.
+      { id: "1", title: "Vodafone Pay Ana Sayfa", slug: "vodafone-pay-ana-sayfa", isHomepage: true },
+      { id: "2", title: "T", slug: "aninda-bakiye", isHomepage: false },
+      // A page that merely happens to be slugged "anasayfa" is an ordinary page now.
+      { id: "3", title: "Anasayfa", slug: "anasayfa", isHomepage: false },
     ] as never);
 
-    expect(await generateStaticParams()).toEqual([{ slug: ["aninda-bakiye"] }]);
+    expect(await generateStaticParams()).toEqual([{ slug: ["aninda-bakiye"] }, { slug: ["anasayfa"] }]);
   });
 });
 
-describe("homepage slug", () => {
-  it("308-redirects /anasayfa to / instead of serving the same page twice", async () => {
-    await expect(EditorPage({ params: Promise.resolve({ slug: ["anasayfa"] }) })).rejects.toThrow("NEXT_REDIRECT:/");
+describe("homepage flag", () => {
+  const base = { id: "6", layout: [], seoTitle: undefined, seoDescription: undefined, seoKeywords: undefined, ogImage: undefined, parent: undefined, deeplink: undefined };
+
+  it("308-redirects the flagged homepage's own slug to / instead of serving the same page twice", async () => {
+    vi.mocked(getPageBySlug).mockResolvedValue({ ...base, title: "Vodafone Pay Ana Sayfa", slug: "vodafone-pay-ana-sayfa", isHomepage: true } as never);
+
+    await expect(EditorPage({ params: Promise.resolve({ slug: ["vodafone-pay-ana-sayfa"] }) })).rejects.toThrow("NEXT_REDIRECT:/");
     expect(permanentRedirectMock).toHaveBeenCalledWith("/");
-    // It must not even reach the CMS for a page it is never going to render.
-    expect(getPageBySlug).not.toHaveBeenCalledWith("anasayfa");
+  });
+
+  it("serves an unflagged page normally even if its slug is 'anasayfa'", async () => {
+    permanentRedirectMock.mockClear();
+    vi.mocked(getPageBySlug).mockResolvedValue({ ...base, title: "Anasayfa", slug: "anasayfa", isHomepage: false } as never);
+
+    await EditorPage({ params: Promise.resolve({ slug: ["anasayfa"] }) });
+
+    expect(permanentRedirectMock).not.toHaveBeenCalled();
   });
 });
 

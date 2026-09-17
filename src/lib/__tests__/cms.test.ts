@@ -19,6 +19,7 @@ import {
   getPageBySlug,
   getPageMeta,
   getPages,
+  getHomepage,
   getProductsMenuPages,
   getRepresentativeById,
   getRepresentatives,
@@ -415,7 +416,7 @@ describe("cms.ts fetch-backed getters", () => {
   it("getPages returns the full list of editor-built pages", async () => {
     const doc = { id: "p1", title: "T", slug: "t" };
     vi.mocked(fetch).mockImplementation(() => okJson({ docs: [doc] }));
-    expect(await getPages()).toEqual([doc]);
+    expect(await getPages()).toEqual([{ ...doc, isHomepage: false }]);
   });
 
   /**
@@ -438,7 +439,31 @@ describe("cms.ts fetch-backed getters", () => {
 
     const pages = await getPages();
 
-    expect(pages).toEqual([{ id: "p1", title: "Layout Test", slug: "layout-test" }]);
+    expect(pages).toEqual([{ id: "p1", title: "Layout Test", slug: "layout-test", isHomepage: false }]);
+  });
+
+  /**
+   * 16.09.2026: `/` is found by the "Bu Sayfa Anasayfa Olsun" flag, not by the
+   * old magic `anasayfa` slug — a page titled anything else used to be
+   * unreachable as the homepage.
+   */
+  it("getHomepage asks for the flagged page, never for a slug", async () => {
+    vi.mocked(fetch).mockImplementation(() =>
+      okJson({ docs: [{ id: "6", title: "Vodafone Pay Ana Sayfa", slug: "vodafone-pay-ana-sayfa", layout: [], isHomepage: true }] })
+    );
+
+    const page = await getHomepage();
+
+    const url = String(vi.mocked(fetch).mock.calls.at(-1)?.[0]);
+    expect(url).toContain("where[isHomepage][equals]=true");
+    expect(url).not.toContain("where[slug]");
+    expect(page?.slug).toBe("vodafone-pay-ana-sayfa");
+    expect(page?.isHomepage).toBe(true);
+  });
+
+  it("getHomepage returns null when no page is flagged", async () => {
+    vi.mocked(fetch).mockImplementation(() => okJson({ docs: [] }));
+    expect(await getHomepage()).toBeNull();
   });
 
   it("getPages asks the CMS only for the route fields the sitemap/static params use", async () => {

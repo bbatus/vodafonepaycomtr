@@ -914,6 +914,7 @@ const pageSchema = z.object({
   ogImage: mediaSchema.nullable().optional().transform((v) => v ?? undefined),
   parent: pageParentSchema.nullable().optional().transform((v) => v ?? undefined),
   deeplink: nullableString(),
+  isHomepage: z.boolean().nullable().optional().transform((v) => v ?? false),
 });
 export type CmsPage = z.infer<typeof pageSchema>;
 
@@ -926,6 +927,25 @@ export type CmsPage = z.infer<typeof pageSchema>;
 export async function getPageBySlug(slug: string): Promise<CmsPage | null> {
   const data = await cmsFetch(
     `/pages?depth=2&limit=1&where[slug][equals]=${encodeURIComponent(slug)}`,
+    "pages",
+    listResponseSchema(pageSchema)
+  );
+  return data?.docs?.[0] ?? null;
+}
+
+/**
+ * 16.09.2026: the homepage is whichever published, public Pages document has
+ * its "Bu Sayfa Anasayfa Olsun" box ticked — NOT a document with a magic
+ * `anasayfa` slug any more. That old coupling was invisible to editors: title
+ * a page "Vodafone Pay Ana Sayfa" and its slug came out different, so `/`
+ * silently couldn't find it. The CMS enforces that at most one page carries
+ * the flag (clover's `enforceSingleHomepage`), so `limit=1` is exact, not a
+ * guess. Anonymous reads only ever see published + public pages (clover's
+ * `pagesRead` access), same as every other page getter here.
+ */
+export async function getHomepage(): Promise<CmsPage | null> {
+  const data = await cmsFetch(
+    "/pages?depth=2&limit=1&where[isHomepage][equals]=true",
     "pages",
     listResponseSchema(pageSchema)
   );
@@ -954,6 +974,8 @@ const pageRouteSchema = z.object({
   id: z.union([z.string(), z.number()]).transform(String),
   title: z.string(),
   slug: z.string(),
+  // The homepage document is served at `/`, so route listings skip it.
+  isHomepage: z.boolean().nullable().optional().transform((v) => v ?? false),
 });
 export type CmsPageRoute = z.infer<typeof pageRouteSchema>;
 
