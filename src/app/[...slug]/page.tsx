@@ -123,6 +123,7 @@ export async function BlockRenderer({ block }: { block: CmsPageBlock }) {
         <Faq
           items={(items ?? []).map((f) => ({ question: f.question, answer: f.answer, deeplink: f.deeplink }))}
           showHeading={Boolean(block.heading)}
+          heading={block.heading || undefined}
         />
       );
     }

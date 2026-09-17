@@ -25,6 +25,14 @@ describe("JsonLd", () => {
     expect(data.mainEntity[0].acceptedAnswer.text).toBe("Budur.");
   });
 
+  it("flattens a rich-text answer to plain text for schema.org", () => {
+    const answer = {
+      root: { children: [{ type: "paragraph", children: [{ text: "Zengin" }, { text: "cevap." }] }] },
+    };
+    const { container } = render(<FaqJsonLd items={[{ question: "Nedir?", answer }]} />);
+    expect(parse(container).mainEntity[0].acceptedAnswer.text).toBe("Zengin cevap.");
+  });
+
   it("emits nothing for an empty FAQ — an empty FAQPage is a structured-data error", () => {
     const { container } = render(<FaqJsonLd items={[]} />);
     expect(container.querySelector("script")).toBeNull();

@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { FaqJsonLd } from "@/components/JsonLd";
 import { AppDownloadBanner } from "@/components/AppDownloadBanner";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { getCategories, getFaqItems, getPageMeta, getTranslation } from "@/lib/cms";
 import type { FilterTabCategory } from "@/components/FilterTabs";
-import { FaqCategoryFilter } from "./FaqCategoryFilter";
+import { FaqCategoryFilter, FaqCategoryFilterFallback } from "./FaqCategoryFilter";
 import { buildMetadata } from "@/lib/metadata";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -50,7 +51,11 @@ export default async function SikcaSorulanSorular() {
       <AppDownloadBanner />
       <Header />
       <FaqJsonLd items={items.map((i) => ({ question: i.question, answer: i.answer }))} />
-      <FaqCategoryFilter items={items.length ? items : undefined} categories={categories} allLabel={allLabel} />
+      {/* useSearchParams (?kategori=) needs a Suspense boundary to keep this page statically renderable;
+          the fallback is the same list with "Tümü" selected, so there is no visible flash. */}
+      <Suspense fallback={<FaqCategoryFilterFallback items={items} categories={categories} allLabel={allLabel} />}>
+        <FaqCategoryFilter items={items.length ? items : undefined} categories={categories} allLabel={allLabel} />
+      </Suspense>
       <Footer />
     </main>
   );

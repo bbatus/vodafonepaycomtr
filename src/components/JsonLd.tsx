@@ -1,3 +1,5 @@
+import { richTextToPlainText } from "@/lib/cms";
+
 const SITE_URL = process.env.SITE_URL || "http://localhost:3000";
 
 /**
@@ -43,7 +45,7 @@ export function OrganizationJsonLd() {
  * Marks up an FAQ accordion. Only emitted when there are questions — an empty
  * FAQPage is a structured-data error, not a neutral no-op.
  */
-export function FaqJsonLd({ items }: { items: { question: string; answer: string }[] }) {
+export function FaqJsonLd({ items }: { items: { question: string; answer: string | Record<string, unknown> }[] }) {
   if (items.length === 0) return null;
   return (
     <JsonLdScript
@@ -53,7 +55,11 @@ export function FaqJsonLd({ items }: { items: { question: string; answer: string
         mainEntity: items.map((i) => ({
           "@type": "Question",
           name: i.question,
-          acceptedAnswer: { "@type": "Answer", text: i.answer },
+          acceptedAnswer: {
+            "@type": "Answer",
+            // Rich-text answers (17.09.2026) go out as plain text — schema.org wants text, not Lexical JSON.
+            text: typeof i.answer === "string" ? i.answer : richTextToPlainText(i.answer, 5000),
+          },
         })),
       }}
     />

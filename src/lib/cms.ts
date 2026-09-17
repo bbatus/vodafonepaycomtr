@@ -247,7 +247,9 @@ export function campaignToCard(c: CmsCampaign) {
 const faqItemSchema = z.object({
   id: z.union([z.string(), z.number()]).transform(String),
   question: z.string(),
-  answer: z.string(),
+  // 17.09.2026: richText (Lexical JSON) in the CMS; a string is still
+  // accepted so a cached pre-migration response doesn't fail validation.
+  answer: z.union([z.string(), z.record(z.string(), z.unknown())]),
   // Was a hardcoded select value (a bare slug string); now the same
   // Categories relationship Campaigns/BlogPosts use. `.nullable()` even
   // though the CMS field is `required: true` — a category that gets deleted
