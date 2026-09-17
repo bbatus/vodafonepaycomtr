@@ -65,3 +65,16 @@ ikinci kaynak kaldırıldığı için burada da tek kaynağa indi.
 tek kez, sıra korunmuş (Vodafone Pay Uygulaması → Kart → QR ile Öde → Faturana
 Yansıt → Anında Bakiye → Vodafone Pay Detayları); `/site-haritasi` aynı 6
 kaydı gösteriyor, diğer gruplar bozulmadı.
+
+## 49-site. Faz 1: `/` bayrağa göre (17.09.2026)
+
+Tam plan, kararlar, DB göçleri ve bulgular: `clover/tasks.md` #49.
+
+- [x] `getHomepage()` — slug değil `isHomepage` bayrağı; `/` onunla okuyor.
+- [x] İşaretli sayfanın kendi slug'ı → 308 `/`; işaretsiz bir "anasayfa"
+      slug'ı artık sıradan sayfa.
+- [x] sitemap + generateStaticParams bayrağa göre; `src/lib/homepage.ts` silindi.
+- [x] Site 397/397, tsc/eslint temiz.
+- [x] Canlı (`next dev`): bayrak taşınınca `/` ve yönlendirmeler bayrağı
+      takip etti, geri alınınca eski hali.
+- [ ] Docker imajıyla doğrulanmadı — Docker Desktop'ta çekme asılı (bkz. clover #49).
