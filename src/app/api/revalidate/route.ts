@@ -14,6 +14,7 @@ const ALLOWED_TAGS = new Set([
   "announcements",
   "legal-pages",
   "contact-info",
+  "footer-settings",
   "representatives",
   "cookie-rows",
   "page-meta",

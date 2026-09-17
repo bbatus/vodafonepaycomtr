@@ -17,7 +17,8 @@ import { cn } from "@/lib/utils";
  * - `max-width 1030px; margin 40px auto; font-family VodafoneRegular`
  * - heading 28px / leading-tight, `font-bold` on VodafoneRegular — the live
  *   site has no bold cut declared under that name, so the browser synthesizes
- *   the weight; reproduced with font-sans + weight 700. `mt-20 mb-10` on lg.
+ *   the weight; reproduced with font-sans + weight 700. 80px above it on lg
+ *   (its `mt-20` collapsed with the block's own 40px margin), 40px below.
  * - questions VodafoneRegular 16/24; SEVERAL answers can be open at once.
  * - answers 18px/27px #333 (the live answers are inline `font-size: 18px`
  *   spans, which is what visitors actually see).
@@ -46,7 +47,22 @@ export const SYSTEM_SANS = "[font-family:ui-sans-serif,system-ui,sans-serif]";
 
 /** `answer` is CMS rich text since 17.09.2026; a plain string is still accepted (tests, older cached payloads). */
 function Answer({ answer }: { answer: FaqItem["answer"] }): ReactNode {
-  if (typeof answer === "string") return <p>{answer}</p>;
+  // Plain-text answers (Announcements.body, older cached payloads): blank lines separate paragraphs.
+  if (typeof answer === "string") {
+    return (
+      <>
+        {answer
+          .split(/\n\s*\n/)
+          .map((p) => p.trim())
+          .filter(Boolean)
+          .map((p, i) => (
+            <p key={`${i}-${p.slice(0, 16)}`} className={i > 0 ? "!mt-3" : undefined}>
+              {p}
+            </p>
+          ))}
+      </>
+    );
+  }
   return <RichText data={answer} />;
 }
 
@@ -76,11 +92,19 @@ export function Faq({
 
   return (
     <section
-      className={cn("w-full subpixel-antialiased", isPage ? "mb-[30px]" : "mx-auto my-10 max-w-[1030px] font-sans")}
+      className={cn(
+        "w-full subpixel-antialiased",
+        isPage ? "mb-[30px]" : "mx-auto my-10 max-w-[1030px] font-sans",
+        // Live, the block's 40px top margin and its heading's 80px (lg) top
+        // margin collapse into one 80px gap. Our pages lay sections out in a
+        // flex column, where margins never collapse, so the collapsed result
+        // is applied here directly instead of stacking to 120px.
+        !isPage && showHeading && "lg:mt-20"
+      )}
     >
       {showHeading && !isPage && (
         <div className="mb-10 px-4 lg:px-0">
-          <h2 className="mt-6 text-center font-sans text-2xl text-black [font-weight:700] lg:mt-20 lg:text-start lg:text-[28px] lg:leading-tight">
+          <h2 className="text-center font-sans text-2xl text-black [font-weight:700] lg:text-start lg:text-[28px] lg:leading-tight">
             {heading}
           </h2>
         </div>

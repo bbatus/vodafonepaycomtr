@@ -155,3 +155,17 @@ Kullanıcı: "Blogları da kampanyalar gibi eşitleyelim; tarih, tablo, başlık
   - Detay: breadcrumb 1300px, `py-3`; tarih etiketi sol sütunun sağ altında; gövde üst bölümden 80px sonra başlıyor; tablo hücreleri, madde işaretleri ve linkler aynı; "Daha fazlasını keşfedin" kartları 361×325, grid konumu aynı.
   - Test verisi: yerel "Ulaşım Kartı Bakiye Yükleme Yolları" (#3) yazısına 23.07.2026 tarihi, 2 başlık, 5 satırlık tablo, 3 maddelik liste ve link girildi (yerel dev veri).
 - Testler 413/413, tsc ve eslint temiz.
+
+## 57-site. /duyurular, /iletisim ve footer canlıyla eşitlendi (17.09.2026)
+
+- `PageSpotlight` (yeni): canlıdaki `VpayOtherSpotlight` başlık banner'ı (1030px, 322px, 12px köşe, `public/images/spotlight/page-banner.svg`).
+- /duyurular: breadcrumb, banner ve Faq block ile duyurular (birden fazlası açık kalabilir). Başlık kullanıcı kararıyla "Duyurular" (canlıda yanlışlıkla "Sıkça Sorulan Sorular"). `DuyurularAccordion` ve testi silindi.
+- /iletisim: breadcrumb yok, banner, #F2F2F2 bant ve ücretler/limitler tablo kuralları (104px satırlar, 7. satır 260px quirk'ü). Fallback canlı değerlerle korundu.
+- Faq block: flex sayfalarda margin'ler üst üste binmediği için üst boşluk doğrudan `lg:mt-20` (120 → canlıdaki 80px).
+- Footer baştan yazıldı:
+  - lg'de 480px, CMS'ten gelen arka plan (boşsa `public/images/footer/footer-bg.svg`); mobilde siyah→kırmızı gradyan.
+  - 220px QR; sütun başlığı yok.
+  - Sol: kurumsal linkler + LinkedIn. Orta: `getFooterBlogPosts`. Sağ: kampanyalar (limit 7). Alt: yasal linkler.
+  - SSS sütunu kaldırıldı. Revalidate'e `footer-settings` tag'i eklendi.
+- Doğrulama: 1440px canlı ve yerel ekran görüntüleri karşılaştırıldı (banner, başlık, tablo, footer ölçüleri aynı). Kalan farklar yerel test verisinden: "layout Test Sayfası" menü linki, "Test ediyorumaa" kampanyası, farklı duyuru ve blog içerikleri.
+- Testler 413/413, tsc ve eslint temiz. Clover #57 ile birlikte deploy edilmeli.

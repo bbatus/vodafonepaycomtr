@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import Duyurular from "@/app/duyurular/page";
 import { getAnnouncements, getPageMeta } from "@/lib/cms";
 
@@ -17,10 +18,12 @@ describe("Duyurular", () => {
 
     render(await Duyurular());
 
-    expect(screen.getByRole("heading", { name: "Duyurular" })).toBeInTheDocument();
+    // The title banner still renders; the accordion (and its heading) doesn't without announcements.
+    expect(screen.getByRole("heading", { level: 1, name: "Duyurular" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { expanded: false })).not.toBeInTheDocument();
   });
 
-  it("renders each CMS announcement's title and body paragraphs", async () => {
+  it("renders each announcement as an FAQ-block question whose body keeps its paragraphs", async () => {
     vi.mocked(getAnnouncements).mockResolvedValue([
       { id: "1", title: "Duyuru Başlığı", body: "Paragraf 1\n\nParagraf 2", deeplink: undefined, order: 0 },
     ] as never);
@@ -28,7 +31,11 @@ describe("Duyurular", () => {
 
     render(await Duyurular());
 
-    expect(screen.getByText("Duyuru Başlığı")).toBeInTheDocument();
+    // Live parity: the block heading, then the question card (user decision: "Duyurular", not "Sıkça Sorulan Sorular").
+    expect(screen.getByRole("heading", { level: 2, name: "Duyurular" })).toBeInTheDocument();
+    await userEvent.setup().click(screen.getByText("Duyuru Başlığı"));
+    expect(screen.getByText("Paragraf 1")).toBeInTheDocument();
+    expect(screen.getByText("Paragraf 2")).toBeInTheDocument();
   });
   it("uses the CMS breadcrumbLabel override when set", async () => {
     vi.mocked(getPageMeta).mockResolvedValue({
@@ -41,8 +48,10 @@ describe("Duyurular", () => {
       ogImage: undefined,
     } as never);
 
+    vi.mocked(getAnnouncements).mockResolvedValue(null);
     render(await Duyurular());
 
-    expect(screen.getByText("CMS Kırıntı Etiketi")).toBeInTheDocument();
+    // Shown twice: in the breadcrumb and as the title banner.
+    expect(screen.getAllByText("CMS Kırıntı Etiketi").length).toBeGreaterThan(0);
   });
 });

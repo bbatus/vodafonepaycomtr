@@ -1,89 +1,93 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { Footer } from "@/components/Footer";
-import { getFooterCampaigns, getFooterFaqItems, getNavLinks } from "@/lib/cms";
+import { getFooterBlogPosts, getFooterCampaigns, getFooterSettings, getNavLinks } from "@/lib/cms";
 
 vi.mock("@/lib/cms", async () => {
   const actual = await vi.importActual<typeof import("@/lib/cms")>("@/lib/cms");
-  return { ...actual, getNavLinks: vi.fn(), getFooterCampaigns: vi.fn(), getFooterFaqItems: vi.fn() };
+  return { ...actual, getNavLinks: vi.fn(), getFooterCampaigns: vi.fn(), getFooterBlogPosts: vi.fn(), getFooterSettings: vi.fn() };
 });
 
 /** Footer is an async Server Component — RTL's render() needs the resolved element, not the async function itself. */
 async function renderFooter() {
-  render(await Footer());
+  return render(await Footer());
+}
+
+function mockEmpty() {
+  vi.mocked(getNavLinks).mockResolvedValue(null);
+  vi.mocked(getFooterCampaigns).mockResolvedValue(null);
+  vi.mocked(getFooterBlogPosts).mockResolvedValue(null);
+  vi.mocked(getFooterSettings).mockResolvedValue(null);
 }
 
 describe("Footer", () => {
-  it("falls back to the hardcoded Kurumsal/Yasal links when the CMS returns nothing", async () => {
-    vi.mocked(getNavLinks).mockResolvedValue(null);
-    vi.mocked(getFooterCampaigns).mockResolvedValue(null);
-    vi.mocked(getFooterFaqItems).mockResolvedValue(null);
-
+  it("falls back to the hardcoded corporate/legal links when the CMS returns nothing", async () => {
+    mockEmpty();
     await renderFooter();
-
     expect(screen.getByText("İletişim")).toBeInTheDocument();
     expect(screen.getByText("Site Haritası")).toBeInTheDocument();
   });
 
-  it("uses CMS-provided nav links for Kurumsal/Yasal when present", async () => {
+  it("uses CMS-provided nav links for the corporate column when present", async () => {
+    mockEmpty();
     vi.mocked(getNavLinks).mockResolvedValue([
       { label: "CMS Kurumsal Link", href: "/cms-kurumsal", section: "footer-kurumsal", order: 1 },
     ] as never);
-    vi.mocked(getFooterCampaigns).mockResolvedValue(null);
-    vi.mocked(getFooterFaqItems).mockResolvedValue(null);
-
     await renderFooter();
-
     expect(screen.getByText("CMS Kurumsal Link")).toBeInTheDocument();
-    // The hardcoded fallback for this same section must not also render.
     expect(screen.queryByText("Temsilciliklerimiz")).not.toBeInTheDocument();
   });
 
-  it("renders no Sık Sorulanlar links when nothing has been flagged for the footer — no hardcoded fallback here on purpose", async () => {
-    vi.mocked(getNavLinks).mockResolvedValue(null);
-    vi.mocked(getFooterCampaigns).mockResolvedValue(null);
-    vi.mocked(getFooterFaqItems).mockResolvedValue([]);
-
+  it("renders one link per flagged blog post and campaign — the same records the CMS Footer Yönetimi screen lists", async () => {
+    mockEmpty();
+    vi.mocked(getFooterBlogPosts).mockResolvedValue([{ id: "1", title: "Cashback Nedir?", slug: "cashback-nedir" }]);
+    vi.mocked(getFooterCampaigns).mockResolvedValue([
+      { id: "1", title: "Yaz Kampanyası", description: "", image: { url: "/img.jpg", alt: "" }, slug: "yaz-kampanyasi", featured: false, category: null },
+    ] as never);
     await renderFooter();
-
-    const heading = screen.getByText("Sık Sorulanlar");
-    const list = heading.parentElement?.querySelector("ul");
-    expect(list?.children.length).toBe(0);
+    expect(screen.getByText("Cashback Nedir?").closest("a")).toHaveAttribute("href", "/blog/cashback-nedir");
+    expect(screen.getByText("Yaz Kampanyası").closest("a")).toHaveAttribute("href", "/kampanyalar/yaz-kampanyasi");
   });
 
-  it("renders one footer link per flagged FAQ item and campaign", async () => {
-    vi.mocked(getNavLinks).mockResolvedValue(null);
-    vi.mocked(getFooterCampaigns).mockResolvedValue([
-      {
-        id: "1",
-        title: "Yaz Kampanyası",
-        description: "",
-        image: { url: "/img.jpg", alt: "" },
-        slug: "yaz-kampanyasi",
-        ctaUrl: null,
-        ctaLabel: null,
-        startDate: null,
-        endDate: null,
-      },
-    ] as never);
-    vi.mocked(getFooterFaqItems).mockResolvedValue([{ id: "1", question: "Soru?", answer: "Cevap" }] as never);
-
+  it("has no column headings and no FAQ column, like the live footer", async () => {
+    mockEmpty();
     await renderFooter();
+    expect(screen.queryByText("Sık Sorulanlar")).not.toBeInTheDocument();
+    expect(screen.queryByText("Kurumsal")).not.toBeInTheDocument();
+  });
 
-    expect(screen.getByText("Yaz Kampanyası")).toBeInTheDocument();
-    expect(screen.getByText("Soru?")).toBeInTheDocument();
+  it("uses the live default QR card and background when the Footer Yönetimi images are empty", async () => {
+    mockEmpty();
+    vi.mocked(getFooterSettings).mockResolvedValue({ backgroundImage: undefined, qrImage: undefined, linkedinUrl: undefined });
+    const { container } = await renderFooter();
+    expect(screen.getByAltText("Vodafone Pay QR Kodu")).toHaveAttribute("src", "/images/footer/sticky-qr.png");
+    expect(container.querySelector("footer")?.getAttribute("style")).toContain("/images/footer/footer-bg.svg");
+  });
+
+  it("uses the CMS-managed QR card and background when set", async () => {
+    mockEmpty();
+    vi.mocked(getFooterSettings).mockResolvedValue({
+      backgroundImage: { url: "/media/bg.svg", alt: "" },
+      qrImage: { url: "/media/qr.png", alt: "" },
+      linkedinUrl: "https://www.linkedin.com/company/x",
+    });
+    const { container } = await renderFooter();
+    expect(screen.getByAltText("Vodafone Pay QR Kodu")).toHaveAttribute("src", "/media/qr.png");
+    expect(container.querySelector("footer")?.getAttribute("style")).toContain("/media/bg.svg");
+    expect(screen.getByLabelText("LinkedIn")).toHaveAttribute("href", "https://www.linkedin.com/company/x");
+  });
+
+  it("hides the LinkedIn icon when the editor cleared the address", async () => {
+    mockEmpty();
+    vi.mocked(getFooterSettings).mockResolvedValue({ backgroundImage: undefined, qrImage: undefined, linkedinUrl: undefined });
+    await renderFooter();
+    expect(screen.queryByLabelText("LinkedIn")).not.toBeInTheDocument();
   });
 
   it("marks external links (absolute http(s) URLs) to open in a new tab, unlike internal ones", async () => {
-    vi.mocked(getNavLinks).mockResolvedValue(null);
-    vi.mocked(getFooterCampaigns).mockResolvedValue(null);
-    vi.mocked(getFooterFaqItems).mockResolvedValue(null);
-
+    mockEmpty();
     await renderFooter();
-
-    const external = screen.getByText("Bilgi Toplum Hizmetleri").closest("a");
-    expect(external).toHaveAttribute("target", "_blank");
-    const internal = screen.getByText("İletişim").closest("a");
-    expect(internal).not.toHaveAttribute("target");
+    expect(screen.getByText("Bilgi Toplum Hizmetleri").closest("a")).toHaveAttribute("target", "_blank");
+    expect(screen.getByText("İletişim").closest("a")).not.toHaveAttribute("target");
   });
 });

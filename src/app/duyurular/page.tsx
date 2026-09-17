@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import { AppDownloadBanner } from "@/components/AppDownloadBanner";
 import { Header } from "@/components/Header";
 import { Breadcrumb } from "@/components/Breadcrumb";
+import { Faq } from "@/components/Faq";
 import { Footer } from "@/components/Footer";
-import { DuyurularAccordion, type Announcement } from "./DuyurularAccordion";
-import { getAnnouncements, getPageMeta, textToParagraphs } from "@/lib/cms";
+import { PageSpotlight } from "@/components/PageSpotlight";
+import { getAnnouncements, getPageMeta } from "@/lib/cms";
 import { buildMetadata } from "@/lib/metadata";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -18,40 +19,37 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
+/**
+ * Live parity: vodafonepay.com.tr/duyurular (17.09.2026) is the breadcrumb,
+ * the dark→red title banner (`VpayOtherSpotlight` → PageSpotlight) and a
+ * `General\FAQs` accordion holding the announcements — the same block the
+ * product pages use (Faq variant="block": several answers open at once,
+ * 28px heading, 1030px column).
+ *
+ * The live block's heading reads "Sıkça Sorulan Sorular" — almost certainly a
+ * content mistake on the live page; by the user's decision (17.09.2026) ours
+ * says "Duyurular". Everything else matches.
+ *
+ * Announcements.body is plain text: its blank-line paragraphs become separate
+ * `<p>`s, so an editor's paragraph breaks survive as on the old accordion.
+ */
 export default async function Duyurular() {
-  const cmsAnnouncements = await getAnnouncements();
-  const items: Announcement[] | undefined = cmsAnnouncements?.length
-    ? cmsAnnouncements.map((a) => ({
-        title: a.title,
-        deeplink: a.deeplink,
-        body: (
-          <>
-            {textToParagraphs(a.body).map((p, i) => (
-              <p key={p} className={i > 0 ? "mt-3" : undefined}>
-                {p}
-              </p>
-            ))}
-          </>
-        ),
-      }))
-    : undefined;
+  const [cmsAnnouncements, pageMeta] = await Promise.all([getAnnouncements(), getPageMeta("/duyurular")]);
+  const label = pageMeta?.breadcrumbLabel || "Duyurular";
 
-  const pageMeta = await getPageMeta("/duyurular");
+  const items = (cmsAnnouncements ?? []).map((a) => ({
+    question: a.title,
+    answer: a.body,
+    deeplink: a.deeplink,
+  }));
 
   return (
     <main className="flex min-h-screen flex-col">
       <AppDownloadBanner />
       <Header />
-      <Breadcrumb current={pageMeta?.breadcrumbLabel || "Duyurular"} />
-
-      <section className="mx-auto w-full max-w-3xl px-4 pb-20">
-        <h1 className="text-center text-[40px] font-light leading-[48px] text-black">Duyurular</h1>
-
-        <div className="mt-10">
-          <DuyurularAccordion items={items ?? []} />
-        </div>
-      </section>
-
+      <Breadcrumb current={label} />
+      <PageSpotlight title={label} />
+      <Faq items={items} heading="Duyurular" />
       <Footer />
     </main>
   );

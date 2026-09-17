@@ -1,121 +1,154 @@
-import Image from "next/image";
+import type { CSSProperties } from "react";
 import Link from "next/link";
-import { campaignToCard, getFooterCampaigns, getFooterFaqItems, getNavLinks, type NavLinkSection } from "@/lib/cms";
-import { QrDownloadBadge } from "@/components/QrDownloadBadge";
+import { campaignToCard, getFooterBlogPosts, getFooterCampaigns, getFooterSettings, getNavLinks } from "@/lib/cms";
 
 interface FooterLink {
   label: string;
   href: string;
 }
 
-interface FooterColumn {
-  title: string;
-  section: NavLinkSection;
-  links: FooterLink[];
+type LinkSection = "footer-kurumsal" | "footer-yasal";
+
+// Fallback masking audit (KEPT DELIBERATELY) — the left column and the bottom
+// row only. The CMS collection behind these two sections has real, published
+// rows (seeded from this exact list — see docs/RFP-OPEN-ITEMS.md §9), so this
+// only ever fires if that data somehow comes back empty. The blog and
+// campaign columns have NO fallback, on purpose: they are driven by each
+// record's own "Footer'da Göster" flag, so nothing flagged means an empty
+// column, not hardcoded copy.
+const FALLBACK_LINKS: Record<LinkSection, FooterLink[]> = {
+  "footer-kurumsal": [
+    { label: "Temsilciliklerimiz", href: "/temsilciliklerimiz" },
+    { label: "İletişim", href: "/iletisim" },
+    { label: "Kurumsal Yönetim", href: "/kurumsal-yonetim" },
+    { label: "Duyurular", href: "/duyurular" },
+    { label: "Bilgi Toplum Hizmetleri", href: "https://e-sirket.mkk.com.tr/?page=company&company=21693#" },
+  ],
+  "footer-yasal": [
+    { label: "Site Haritası", href: "/site-haritasi" },
+    { label: "Gizlilik ve Güvenlik Politikası", href: "/gizlilik-ve-guvenlik-politikasi" },
+    { label: "Çerez Politikası", href: "/cerez-politikasi" },
+    { label: "Bilgi Güvenliği", href: "/bilgi-guvenligi" },
+    { label: "Sözleşmeler ve Formlar", href: "/sozlesmeler-ve-formlar" },
+    { label: "Web Sitesi Kullanımı Hüküm ve Şartları", href: "/web-sitesi-hukum-ve-sartlari" },
+    { label: "Faydalı Bilgiler", href: "/faydali-bilgiler" },
+  ],
+};
+
+/** The live site's own assets — used whenever the Footer Yönetimi record leaves an image empty. */
+const DEFAULT_BACKGROUND = "/images/footer/footer-bg.svg";
+const DEFAULT_QR = "/images/footer/sticky-qr.png";
+/** Only used when the CMS itself can't be reached; an editor who clears the field hides the icon. */
+const DEFAULT_LINKEDIN = "https://www.linkedin.com/company/vodafone-elektronik-para-ve-%C3%B6deme-hizmetleri-a-%C5%9F/";
+
+function FooterAnchor({ link, className }: { link: FooterLink; className: string }) {
+  if (/^https?:\/\//.test(link.href)) {
+    return (
+      <a href={link.href} target="_blank" rel="noopener noreferrer" className={className}>
+        {link.label}
+      </a>
+    );
+  }
+  return (
+    <Link href={link.href} className={className}>
+      {link.label}
+    </Link>
+  );
 }
 
-// Fallback masking audit (KEPT DELIBERATELY) — "Kurumsal"/"Yasal" only. CMS
-// collection behind these two sections has real, published rows now
-// (seeded from this exact fallback — see docs/RFP-OPEN-ITEMS.md §9), so
-// this only ever fires if that data somehow comes back empty. "Sık
-// Sorulanlar"/"Kampanyalar" are handled separately below with NO fallback,
-// on purpose: RFP follow-up moved them onto a per-record `showInFooter`
-// flag (Campaigns/FaqItems), so an editor hasn't flagged anything yet
-// means the column stays empty until they do, not padded with hardcoded copy.
-const fallbackColumns: FooterColumn[] = [
-  {
-    title: "Kurumsal",
-    section: "footer-kurumsal",
-    links: [
-      { label: "Temsilciliklerimiz", href: "/temsilciliklerimiz" },
-      { label: "İletişim", href: "/iletisim" },
-      { label: "Kurumsal Yönetim", href: "/kurumsal-yonetim" },
-      { label: "Duyurular", href: "/duyurular" },
-      { label: "Bilgi Toplum Hizmetleri", href: "https://e-sirket.mkk.com.tr/?page=company&company=21693" },
-    ],
-  },
-  {
-    title: "Yasal",
-    section: "footer-yasal",
-    links: [
-      { label: "Site Haritası", href: "/site-haritasi" },
-      { label: "Gizlilik ve Güvenlik Politikası", href: "/gizlilik-ve-guvenlik-politikasi" },
-      { label: "Çerez Politikası", href: "/cerez-politikasi" },
-      { label: "Bilgi Güvenliği", href: "/bilgi-guvenligi" },
-      { label: "Sözleşmeler ve Formlar", href: "/sozlesmeler-ve-formlar" },
-      { label: "Web Sitesi Kullanımı Hüküm ve Şartları", href: "/web-sitesi-hukum-ve-sartlari" },
-      { label: "Faydalı Bilgiler", href: "/faydali-bilgiler" },
-    ],
-  },
-];
-
+/**
+ * Live parity: `widget_Footer` on vodafonepay.com.tr (17.09.2026, computed
+ * styles):
+ * - lg+: 480px tall, the background image (Footer Yönetimi, default the live
+ *   footer.svg) covering it from the left edge; below lg the live site's
+ *   black→red gradient (88.93°, rgba(0,0,0,.9) 43.49% → rgba(230,0,0,.9))
+ *   and natural height
+ * - a 1280px row, `mt-4 lg:mt-20`, white text: the 220px QR card (lg only,
+ *   `mr-10`), then three equal columns —
+ *   left: corporate pages (Menü Linkleri "footer-kurumsal"), VodafoneLight
+ *   18/28 `py-2`, divided by #999 lines below lg; then the 36px LinkedIn icon
+ *   middle: blog posts with "Footer'da Göster", VodafoneRegular 18/28 `py-1`
+ *   right: campaigns with "Footer'da Göster", same style
+ *   (middle and right are desktop-only, as on the live site)
+ * - bottom row: legal pages (Menü Linkleri "footer-yasal"), VodafoneLight
+ *   16/20, centred, `gap-x-8 mt-6 lg:mt-9 pb-5`, 1×20px white separators
+ * No column titles and no FAQ column — the live footer has neither.
+ */
 export async function Footer() {
-  const [cmsLinks, footerCampaigns, footerFaqItems] = await Promise.all([getNavLinks(), getFooterCampaigns(), getFooterFaqItems()]);
+  const [cmsLinks, blogPosts, campaigns, settings] = await Promise.all([
+    getNavLinks(),
+    getFooterBlogPosts(),
+    getFooterCampaigns(),
+    getFooterSettings(),
+  ]);
 
-  const staticColumns: FooterColumn[] = fallbackColumns.map((col) => {
-    const links = cmsLinks?.length
-      ? cmsLinks.filter((l) => l.section === col.section).map((l) => ({ label: l.label, href: l.href }))
-      : [];
-    return { ...col, links: links.length ? links : col.links };
-  });
-  const [kurumsalColumn, yasalColumn] = staticColumns;
-
-  // RFP follow-up: no fallback here, deliberately — see the comment above
-  // fallbackColumns. An empty array just renders the column heading with no
-  // items, which is the whole point: it fills in as an editor checks
-  // "Footer'da Göster" on individual campaigns/questions.
-  const sssColumn: FooterColumn = {
-    title: "Sık Sorulanlar",
-    section: "footer-sss",
-    links: (footerFaqItems ?? []).map((f) => ({ label: f.question, href: "/sikca-sorulan-sorular" })),
+  const linksFor = (section: LinkSection): FooterLink[] => {
+    const fromCms = (cmsLinks ?? []).filter((l) => l.section === section).map((l) => ({ label: l.label, href: l.href }));
+    return fromCms.length ? fromCms : FALLBACK_LINKS[section];
   };
-  const kampanyalarColumn: FooterColumn = {
-    title: "Kampanyalar",
-    section: "footer-kampanyalar",
-    links: (footerCampaigns ?? []).map((c) => ({ label: c.title, href: campaignToCard(c).href })),
-  };
+  const corporate = linksFor("footer-kurumsal");
+  const legal = linksFor("footer-yasal");
+  const blogLinks: FooterLink[] = (blogPosts ?? []).map((p) => ({ label: p.title, href: `/blog/${p.slug}` }));
+  const campaignLinks: FooterLink[] = (campaigns ?? []).map((c) => ({ label: c.title, href: campaignToCard(c).href }));
 
-  const columns: FooterColumn[] = [kurumsalColumn, sssColumn, kampanyalarColumn, yasalColumn];
+  const background = settings?.backgroundImage?.url || DEFAULT_BACKGROUND;
+  const qr = settings?.qrImage?.url || DEFAULT_QR;
+  const linkedinUrl = settings === null ? DEFAULT_LINKEDIN : settings.linkedinUrl;
+  // The background is CMS-managed, so it can't be a static class; it is passed
+  // as a CSS variable and applied only from lg up, exactly like the live CSS.
+  const backgroundVar = { "--footer-bg": `url("${background}")` } as CSSProperties;
 
   return (
-    <footer id="site-footer" className="mt-auto bg-black px-4 py-12 text-white lg:px-16">
-      <div className="mx-auto grid max-w-6xl gap-8 sm:grid-cols-2 lg:grid-cols-4">
-        {columns.map((col) => (
-          <div key={col.title}>
-            <h4 className="mb-4 text-sm font-bold uppercase tracking-wide text-gray-400">{col.title}</h4>
-            <ul className="flex flex-col gap-y-2">
-              {col.links.map((link) => {
-                const isExternal = /^https?:\/\//.test(link.href);
-                return (
-                  <li key={link.label}>
-                    {isExternal ? (
-                      <a
-                        href={link.href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-gray-300 transition-colors hover:text-white"
-                      >
-                        {link.label}
-                      </a>
-                    ) : (
-                      <Link href={link.href} className="text-sm text-gray-300 transition-colors hover:text-white">
-                        {link.label}
-                      </Link>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
+    <footer
+      id="site-footer"
+      style={backgroundVar}
+      className="mt-auto w-full bg-[linear-gradient(88.93deg,rgba(0,0,0,0.9)_43.49%,rgba(230,0,0,0.9))] bg-cover bg-center bg-no-repeat subpixel-antialiased lg:h-[480px] lg:bg-(image:--footer-bg) lg:bg-[position:0_center]"
+    >
+      <div className="flex w-full justify-center">
+        <div className="mt-4 flex w-full max-w-7xl flex-col text-white lg:mt-20 lg:flex-row">
+          {/* eslint-disable-next-line @next/next/no-img-element -- CMS-managed image of arbitrary size, shown at the live 220px width */}
+          <img src={qr} alt="Vodafone Pay QR Kodu" loading="lazy" className="mx-auto mr-10 hidden w-[220px] self-start lg:block" />
+
+          <div className="flex w-full flex-col px-3 lg:w-1/3 lg:px-0">
+            <div className="h-1 w-full border-t border-[#999999] lg:hidden" />
+            {corporate.map((link) => (
+              <FooterAnchor
+                key={link.href + link.label}
+                link={link}
+                className="border-b border-[#999999] py-2 font-light text-lg leading-7 lg:border-0"
+              />
+            ))}
+            {linkedinUrl && (
+              <a href={linkedinUrl} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+                {/* eslint-disable-next-line @next/next/no-img-element -- tiny static SVG icon, same as live */}
+                <img src="/images/footer/linkedin-light.svg" alt="LinkedIn" width={36} height={36} loading="lazy" className="my-4 lg:my-0" />
+              </a>
+            )}
           </div>
-        ))}
+
+          <div className="hidden w-1/3 flex-col px-3 font-sans lg:flex lg:px-0">
+            {blogLinks.map((link) => (
+              <FooterAnchor key={link.href} link={link} className="py-1 text-lg leading-7" />
+            ))}
+          </div>
+
+          <div className="hidden w-1/3 flex-col px-3 font-sans lg:flex lg:px-0">
+            {campaignLinks.map((link) => (
+              <FooterAnchor key={link.href} link={link} className="py-1 text-lg leading-7" />
+            ))}
+          </div>
+        </div>
       </div>
-      <div className="mx-auto mt-10 flex max-w-6xl flex-col items-center justify-between gap-4 border-t border-gray-800 pt-6 sm:flex-row">
-        <Image src="/images/vpay-logo.svg" alt="Vodafone Pay" width={100} height={30} className="brightness-0 invert" />
-        <a href="https://www.linkedin.com" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
-          <Image src="/images/linkedin-light.svg" alt="LinkedIn" width={24} height={24} />
-        </a>
-        <QrDownloadBadge className="h-auto w-[100px] rounded-lg" />
-        <p className="text-xs text-gray-500">&copy; {new Date().getFullYear()} Vodafone Pay. Tüm hakları saklıdır.</p>
+
+      <div className="mx-auto w-full max-w-7xl">
+        <div className="mt-6 flex w-full flex-col items-center justify-center gap-x-8 gap-y-5 pb-5 lg:mt-9 lg:flex-row">
+          {legal.map((link, i) => (
+            <span key={link.href + link.label} className="contents">
+              {i > 0 && <span className="hidden h-5 w-px bg-white lg:block" aria-hidden="true" />}
+              <FooterAnchor link={link} className="text-center font-light text-base leading-5 text-white" />
+            </span>
+          ))}
+        </div>
       </div>
     </footer>
   );

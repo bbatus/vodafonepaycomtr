@@ -195,7 +195,9 @@ export async function getCampaigns(): Promise<CmsCampaign[] | null> {
  */
 export async function getFooterCampaigns(): Promise<CmsCampaign[] | null> {
   const data = await cmsFetch(
-    "/campaigns?depth=1&limit=6&sort=footerOrder&where[showInFooter][equals]=true",
+    // limit = the CMS's own FOOTER_ORDER_MAX (7) — it was 6 here, silently
+    // dropping the 7th campaign an editor was allowed to flag.
+    "/campaigns?depth=1&limit=7&sort=footerOrder&where[showInFooter][equals]=true",
     "campaigns",
     listResponseSchema(campaignSchema)
   );
@@ -289,21 +291,6 @@ export async function getFaqItems(category?: string): Promise<CmsFaqItem[] | nul
   return data?.docs ?? null;
 }
 
-/**
- * RFP follow-up: same pattern as `getFooterCampaigns` — the footer's "Sık
- * Sorulanlar" column is now driven by each FaqItem's own
- * `showInFooter`/`footerOrder` (cms/src/collections/FaqItems.ts), not a
- * hardcoded list. Independent of `category`/`showOnHomepage` — a question
- * can be footer-flagged regardless of which category or homepage state it's in.
- */
-export async function getFooterFaqItems(): Promise<CmsFaqItem[] | null> {
-  const data = await cmsFetch(
-    "/faq-items?depth=1&limit=6&sort=footerOrder&where[showInFooter][equals]=true",
-    "faq-items",
-    listResponseSchema(faqItemSchema)
-  );
-  return data?.docs ?? null;
-}
 
 /**
  * RFP follow-up: `BlogPosts.excerpt` (a separately-authored short summary)
@@ -385,6 +372,45 @@ export async function getBlogPosts(): Promise<CmsBlogPost[] | null> {
     listResponseSchema(blogPostSchema)
   );
   return data?.docs ?? null;
+}
+
+/**
+ * 17.09.2026: the footer's middle column (live vodafonepay.com.tr) is blog
+ * posts. Driven by each post's own `showInFooter`/`footerOrder`, exactly like
+ * campaigns — and the CMS's Footer Yönetimi screen reads the same flag, so the
+ * two can't disagree. Slug + title are all the footer needs.
+ */
+const footerBlogPostSchema = z.object({
+  id: z.union([z.string(), z.number()]).transform(String),
+  title: z.string(),
+  slug: z.string(),
+});
+export type CmsFooterBlogPost = z.infer<typeof footerBlogPostSchema>;
+
+export async function getFooterBlogPosts(): Promise<CmsFooterBlogPost[] | null> {
+  const data = await cmsFetch(
+    "/blog-posts?depth=0&limit=7&sort=footerOrder&where[showInFooter][equals]=true",
+    "blog-posts",
+    listResponseSchema(footerBlogPostSchema)
+  );
+  return data?.docs ?? null;
+}
+
+/**
+ * 17.09.2026: the Footer Yönetimi global — background image, QR visual and
+ * LinkedIn link. Every field is optional; Footer.tsx falls back to the live
+ * site's own assets for an empty image. The published version is what a
+ * plain (non-draft) global read returns.
+ */
+const footerSettingsSchema = z.object({
+  backgroundImage: mediaSchema.nullish(),
+  qrImage: mediaSchema.nullish(),
+  linkedinUrl: nullableString(),
+});
+export type CmsFooterSettings = z.infer<typeof footerSettingsSchema>;
+
+export async function getFooterSettings(): Promise<CmsFooterSettings | null> {
+  return cmsFetch("/globals/footer-settings?depth=1", "footer-settings", footerSettingsSchema);
 }
 
 const blogPostDetailSchema = z.object({
@@ -476,12 +502,11 @@ export async function getLimitTables(): Promise<CmsLimitTable[] | null> {
 }
 
 /**
- * "footer-sss"/"footer-kampanyalar" are no longer offered as NavLinks
- * options in the CMS (RFP follow-up — those two footer columns are now
- * driven by each Campaign/FaqItem's own `showInFooter` flag instead, see
- * `getFooterCampaigns`/`getFooterFaqItems`) but stay in this union because
- * Footer.tsx still tags its two locally-built columns with them for typing
- * consistency with `FooterColumn.section`.
+ * Footer link sections the CMS offers on Menü Linkleri. The footer's blog and
+ * campaign columns are not NavLinks at all — they come from each record's own
+ * `showInFooter` flag (`getFooterBlogPosts` / `getFooterCampaigns`). The old
+ * "footer-sss" / "footer-kampanyalar" members were removed 17.09.2026, when
+ * the footer was matched to the live site (which has no FAQ column).
  */
 export type NavLinkSection =
   // Retired 16.09.2026 — the CMS no longer offers this section (the "Ürünler"
@@ -492,8 +517,6 @@ export type NavLinkSection =
   | "header-products"
   | "header-main"
   | "footer-kurumsal"
-  | "footer-sss"
-  | "footer-kampanyalar"
   | "footer-yasal";
 
 const navLinkSchema = z.object({

@@ -11,8 +11,9 @@ import {
   getCookieRows,
   getFaqItems,
   getFeeRows,
+  getFooterBlogPosts,
   getFooterCampaigns,
-  getFooterFaqItems,
+  getFooterSettings,
   getLegalPage,
   getLimitTables,
   getNavLinks,
@@ -252,12 +253,12 @@ describe("cms.ts fetch-backed getters", () => {
     expect(await getFaqItems()).toEqual([doc]);
   });
 
-  it("getFooterCampaigns filters to showInFooter=true, capped at 6, sorted by footerOrder", async () => {
+  it("getFooterCampaigns filters to showInFooter=true, capped at the CMS's FOOTER_ORDER_MAX (7), sorted by footerOrder", async () => {
     vi.mocked(fetch).mockImplementation(() => okJson({ docs: [] }));
     await getFooterCampaigns();
     const calledUrl = vi.mocked(fetch).mock.calls[0][0] as string;
     expect(calledUrl).toContain("where[showInFooter][equals]=true");
-    expect(calledUrl).toContain("limit=6");
+    expect(calledUrl).toContain("limit=7");
     expect(calledUrl).toContain("sort=footerOrder");
   });
 
@@ -267,19 +268,28 @@ describe("cms.ts fetch-backed getters", () => {
     expect(await getFooterCampaigns()).toEqual([doc]);
   });
 
-  it("getFooterFaqItems filters to showInFooter=true, capped at 6, sorted by footerOrder", async () => {
+  it("getFooterBlogPosts filters blog posts to showInFooter=true, capped at 7, sorted by footerOrder", async () => {
     vi.mocked(fetch).mockImplementation(() => okJson({ docs: [] }));
-    await getFooterFaqItems();
+    await getFooterBlogPosts();
     const calledUrl = vi.mocked(fetch).mock.calls[0][0] as string;
+    expect(calledUrl).toContain("/blog-posts?");
     expect(calledUrl).toContain("where[showInFooter][equals]=true");
-    expect(calledUrl).toContain("limit=6");
+    expect(calledUrl).toContain("limit=7");
     expect(calledUrl).toContain("sort=footerOrder");
   });
 
-  it("getFooterFaqItems returns docs on success", async () => {
-    const doc = { id: "f1", question: "Q?", answer: "A", category: { label: "Genel", slug: "genel" }, order: 0 };
+  it("getFooterBlogPosts returns docs on success", async () => {
+    const doc = { id: "b1", title: "Cashback Nedir?", slug: "cashback-nedir" };
     vi.mocked(fetch).mockImplementation(() => okJson({ docs: [doc] }));
-    expect(await getFooterFaqItems()).toEqual([doc]);
+    expect(await getFooterBlogPosts()).toEqual([doc]);
+  });
+
+  it("getFooterSettings reads the footer-settings global with its images populated", async () => {
+    vi.mocked(fetch).mockImplementation(() => okJson({ backgroundImage: null, qrImage: media, linkedinUrl: "https://linkedin.com/x" }));
+    const settings = await getFooterSettings();
+    expect(vi.mocked(fetch).mock.calls[0][0] as string).toContain("/globals/footer-settings?depth=1");
+    expect(settings?.qrImage?.url).toBe(media.url);
+    expect(settings?.linkedinUrl).toBe("https://linkedin.com/x");
   });
 
   it("getCategories requires a scope and passes it through as a filter", async () => {

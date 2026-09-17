@@ -19,7 +19,8 @@ describe("Iletisim", () => {
 
     expect(screen.getByText("605026-0")).toBeInTheDocument();
     // pressRelationsUrl is set on the fallback — its row should render.
-    expect(screen.getByText("medyamerkezi.vodafone.com.tr/")).toBeInTheDocument();
+    // Live shows the press address as plain text, protocol included.
+    expect(screen.getByText("http://medyamerkezi.vodafone.com.tr/")).toBeInTheDocument();
   });
 
   it("omits the press-relations row entirely when pressRelationsUrl is unset (CMS or fallback)", async () => {
@@ -56,6 +57,7 @@ describe("Iletisim", () => {
 
     render(await Iletisim());
 
-    expect(screen.getByText("CMS Kırıntı Etiketi")).toBeInTheDocument();
+    // No breadcrumb on the live page — the label titles the banner instead.
+    expect(screen.getAllByText("CMS Kırıntı Etiketi").length).toBeGreaterThan(0);
   });
 });
